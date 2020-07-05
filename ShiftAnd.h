@@ -25,6 +25,7 @@
 #include <iostream>
 
 #include "CONST.h"
+#include "BitFunctions.h"
 
 // Implementation of the approximate shift and algorithm with maximum E errors allowed
 template<size_t E>
@@ -68,6 +69,8 @@ class ShiftAnd
         //
         inline void querySeq(std::vector<char>::iterator start, std::vector<char>::iterator end, std::vector<uint64_t>& matches, std::vector<uint8_t>& errors);
         inline void queryRevSeq(std::vector<char>::iterator start, std::vector<char>::iterator end, std::vector<uint64_t>& matches, std::vector<uint8_t>& errors);
+
+        inline void querySeqWithPartMapping(std::vector<char>::iterator start, std::vector<char>::iterator end, std::vector<uint64_t>& matches, std::vector<uint8_t>& errors);
 
         // returns the size of the represented pattern sequence
         inline uint64_t size() { return pLen; }
@@ -185,6 +188,78 @@ inline void ShiftAnd<E>::querySeq(std::vector<char>::iterator start, std::vector
 
             wasMatch = false;
         }
+    }
+}
+
+template<size_t E>
+inline void ShiftAnd<E>::querySeqWithPartMapping(std::vector<char>::iterator start, std::vector<char>::iterator end, std::vector<uint64_t>& matches, std::vector<uint8_t>& errors)
+{
+
+    reset();
+
+    std::vector<int> best;
+    for(size_t i = 0; i < E; i++)
+    {
+        best.push_back(0);
+    }
+
+    bool wasMatch = false;
+    uint8_t prevErrs = MyConst::MISCOUNT + 1;
+    size_t numCompLets = 0;
+    for (auto it = start; it < end; ++it)
+    {
+
+        // we do not consider Ns for matches - restart whole automaton for next letter
+        if (*it == 'N')
+        {
+            reset();
+            continue;
+        }
+        queryLetter(*it);
+
+        ++numCompLets;
+
+        int first, second; //potentially min length
+        for(size_t i = 0; i < E; i++)
+        {
+            first = getHighestIdx64(this->active[i].B_0);
+            second = getHighestIdx64(this->active[i].B_1) + 32;
+            if(second == 32) {
+                if(best[i] < first) best = first;
+            }
+            else {
+                if(best[i] < second) best = second;
+            }
+        }
+            
+
+        // Probably can throw this away
+        /*uint8_t errNum;
+        if (isMatch(errNum))
+        {
+
+            // if we matched in previous round, overwrite that match
+            if (wasMatch)
+            {
+                if (errNum <= prevErrs)
+                {
+                    matches.back() = it - start;
+                    errors.back() = errNum;
+                    prevErrs = errNum;
+                }
+
+            } else {
+
+                matches.push_back(it - start);
+                errors.push_back(errNum);
+                wasMatch = true;
+                prevErrs = errNum;
+            }
+
+        } else {
+
+            wasMatch = false;
+        }*/
     }
 }
 

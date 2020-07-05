@@ -96,11 +96,17 @@ class ReadQueue
         // Make full match using bit shift trick
         // Align match using banded levenshtein alignment to update methylation counts
         bool matchReads(const unsigned int& procReads, uint64_t& succMatch, uint64_t& nonUniqueMatch, uint64_t& unSuccMatch, const bool getStranded);
+        bool matchReadsLocal(const unsigned int& procReads, uint64_t& succMatch, uint64_t& nonUniqueMatch, uint64_t& unSuccMatch, const bool getStranded);
         bool matchPairedReads(const unsigned int& procReads, uint64_t& succMatch, uint64_t& nonUniqueMatch, uint64_t& unSuccMatch, uint64_t& succPairedMatch, uint64_t& tooShortCountMatch, const bool getStranded);
+        bool matchPairedReadsLocal(const unsigned int& procReads, uint64_t& succMatch, uint64_t& nonUniqueMatch, uint64_t& unSuccMatch, uint64_t& succPairedMatch, uint64_t& tooShortCountMatch, const bool getStranded);
+
+        bool LocalMatching();
 
 		// Match batch of single cell reads given by file
 		bool matchSCBatch(const char* scFile, const std::string scId, const bool isGZ);
+        bool matchSCBatchLocal(const char* scFile, const std::string scId, const bool isGZ);
 		bool matchSCBatchPaired(const char* scFile1, const char* scFile2, const std::string scId, const bool isGZ);
+        bool matchSCBatchPairedLocal(const char* scFile1, const char* scFile2, const std::string scId, const bool isGZ));
 
         // Print the CpG methylation levels to the given filename
         // Two files are generated, one called filename_cpg.tsv

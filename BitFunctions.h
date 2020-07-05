@@ -145,4 +145,43 @@ inline uint64_t getBitReprRev(const char& c)
 
 } // end namespace BitFun
 
+// floating point conversion trick to get index of least significant set bit
+    // results is -bias iff bitseq had no bit set
+static inline int64_t getLowestIdx64(uint64_t& bitseq)
+{
+    // First mask off least significant bit set
+    uint64_t lowestSetBit = bitseq & -bitseq;
+    // then convert to double
+    double f = (double)lowestSetBit;
+    // mask off this bit for next round
+    bitseq ^= lowestSetBit;
+    // get the exponent, substract bias according to IEEE standard
+    return (*(uint64_t*)&f >> 52) - 0x3ff;
+}
+static inline int32_t getLowestIdx32(uint32_t& bitseq)
+{
+    uint32_t lowestSetBit = bitseq & -bitseq;
+    float f = (float)lowestSetBit;
+    bitseq ^= lowestSetBit;
+    return (*(uint32_t*)&f >> 23) - 0x7f;
+}
+
+int getHighestIdx64(uint64_t& n) {
+   int k = (int)(log2(n));
+   return k;
+}
+
+int getHighestIdx64Alt(uint64_t& n) 
+{ 
+    n |= n >> 1; 
+    n |= n >> 2;  
+    n |= n >> 4; 
+    n |= n >> 8; 
+    n |= n >> 16; 
+    n |= n >> 32;
+    n = n + 1; 
+    return log2((n >> 1)); 
+}
+
+
 #endif /* BITFUNCTIONS_H */
