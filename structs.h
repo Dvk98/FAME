@@ -161,6 +161,7 @@ namespace MATCH {
     // even next higher bit is start flag
     // 32 most significant bits hold meta CpGID
     typedef uint64_t match;
+    typedef uint8_t size;
 
     // return the offset of given match
     inline uint64_t getOffset(const MATCH::match m)

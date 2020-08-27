@@ -100,13 +100,11 @@ class ReadQueue
         bool matchPairedReads(const unsigned int& procReads, uint64_t& succMatch, uint64_t& nonUniqueMatch, uint64_t& unSuccMatch, uint64_t& succPairedMatch, uint64_t& tooShortCountMatch, const bool getStranded);
         bool matchPairedReadsLocal(const unsigned int& procReads, uint64_t& succMatch, uint64_t& nonUniqueMatch, uint64_t& unSuccMatch, uint64_t& succPairedMatch, uint64_t& tooShortCountMatch, const bool getStranded);
 
-        bool LocalMatching();
+        bool LocalMatching(Read& r, const size_t readSize, std::string revSeq, const bool getStranded);
 
 		// Match batch of single cell reads given by file
 		bool matchSCBatch(const char* scFile, const std::string scId, const bool isGZ);
-        bool matchSCBatchLocal(const char* scFile, const std::string scId, const bool isGZ);
 		bool matchSCBatchPaired(const char* scFile1, const char* scFile2, const std::string scId, const bool isGZ);
-        bool matchSCBatchPairedLocal(const char* scFile1, const char* scFile2, const std::string scId, const bool isGZ));
 
         // Print the CpG methylation levels to the given filename
         // Two files are generated, one called filename_cpg.tsv
@@ -163,6 +161,7 @@ class ReadQueue
 		inline void saQuerySeedSetRefFirst(ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS>& sa, std::vector<MATCH::match>& mats, const uint16_t& qThreshold);
 		inline void saQuerySeedSetRefSecond(ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS>& sa, std::vector<MATCH::match>& mats, const uint16_t& qThreshold);
 
+		inline int saQuerySeedSetRefLocal(ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS>& sa, MATCH::match& mat, uint8_t length, uint16_t& qThreshold, uint8_t minLength);
         // count all metaCpG occurences of k-mers appearing in seq
         //
         // ARGUMENTS:

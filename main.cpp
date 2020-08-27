@@ -248,7 +248,7 @@ int main(int argc, char** argv)
         if (std::string(argv[i]) == "--localalign")
         {
             localAlign = true;
-            continue
+            continue;
         }
 
 
@@ -281,15 +281,8 @@ int main(int argc, char** argv)
 			if (scFlag)
 			{
 				ReadQueue rQue(scOutputFile, ref, readsGZ, bothStrandsFlag, true);
-                if(localAlign) {
-                    std::cerr << "TODO" << std::endl;
-                    queryRoutineSCPairedLocal(rQue, readsGZ, bothStrandsFlag, scMetaFile);
-                    rQue.printMethylationLevels(outputFile);
-                }
-                else {
-                    queryRoutineSCPaired(rQue, readsGZ, bothStrandsFlag, scMetaFile);
-                    rQue.printMethylationLevels(outputFile);
-                }
+                queryRoutineSCPaired(rQue, readsGZ, bothStrandsFlag, scMetaFile);
+                rQue.printMethylationLevels(outputFile);
 
 			} else {
 
@@ -308,17 +301,9 @@ int main(int argc, char** argv)
 			if (scFlag)
 			{
 				ReadQueue rQue(scOutputFile, ref, readsGZ, bothStrandsFlag, false);
-                if(localAlign) {
-                    queryRoutineSCLocal(rQue, readsGZ, bothStrandsFlag, scMetaFile);
-                    rQue.printMethylationLevels(outputFile);
-                }
-                else {
                     queryRoutineSC(rQue, readsGZ, bothStrandsFlag, scMetaFile);
                     rQue.printMethylationLevels(outputFile);
-                }
-
 			} else {
-
 				if (readFile == NULL)
 				{
 
@@ -506,42 +491,6 @@ void queryRoutineSCPaired(ReadQueue& rQue, const bool isGZ, const bool bothStran
     auto runtime = std::chrono::duration_cast<std::chrono::seconds>(endTime - startTime).count();
 
     std::cout << "Done processing in " << runtime << "s\n";
-}
-
-void queryRoutineSCPairedLocal(ReadQueue& rQue, const bool isGZ, const bool bothStrandsFlag, const char* scMetaFile) {
-    //TODO
-}
-
-void queryRoutineSCLocal(ReadQueue& rQue, const bool isGZ, const bool bothStrandsFlag, const char* scMetaFile) {
-    std::chrono::high_resolution_clock::time_point startTime = std::chrono::high_resolution_clock::now();
-
-	std::ifstream scMeta (scMetaFile);
-	std::string line;
-	while (std::getline(scMeta, line))
-	{
-		size_t pos;
-		size_t oldPos = 0;
-
-		pos = line.find_first_of(' ');
-		std::string scId(line, oldPos, pos - oldPos);
-		std::cout << "Processing:\n\t" << scId << "\t";
-		oldPos = pos + 1;
-		pos = line.find_first_of(' ', oldPos);
-		std::string scPath1(line, oldPos, pos - oldPos);
-		std::cout << scPath1 << "\t";
-		oldPos = pos + 1;
-		pos = line.find_first_of(' ', oldPos);
-		std::string scPath2(line, oldPos, pos - oldPos);
-		std::cout << scPath2 << "\n\n";
-
-		rQue.matchSCBatchLocal(scPath1.c_str(), scPath2.c_str(), scId, isGZ);
-	}
-
-    std::chrono::high_resolution_clock::time_point endTime = std::chrono::high_resolution_clock::now();
-    auto runtime = std::chrono::duration_cast<std::chrono::seconds>(endTime - startTime).count();
-
-    std::cout << "Done processing in " << runtime << "s\n";
-}
 }
 
 void printHelp()

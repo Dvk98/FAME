@@ -574,279 +574,137 @@ bool ReadQueue::matchReads(const unsigned int& procReads, uint64_t& succMatch, u
         // no match found at all
         } else {
 
-            r.isInvalid = true;
-            if (succQueryFwd == -1 || succQueryRev == -1)
-            {
-                ++nonUniqueMatchT;
+			if(localAlign) {
+				int success = 0;
+				MATCH::match firstMatch, secondMatch = 0;
+				uint8_t firstLength = 0;
 
-            } else {
-                ++unSuccMatchT;
-            }
-        }
-    }
+				int succQueryFwdFirst = 0;
+				MATCH::match matchFwdFirst = 0;
+				MATCH::match matchFwdFirstSecond = 0;
+				uint8_t fwdFirstLength = 0;
+				ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saFwdFirst(r.seq, lmap);
+				succQueryFwdFirst = saQuerySeedSetRefLocal(saFwdFirst, matchFwdFirst, fwdFirstLength, qThreshold, minLength);
 
-    // sum up counts
-    for (unsigned int i = 0; i < CORENUM; ++i)
-    {
-        succMatch += matchStats[i];
-        nonUniqueMatch += nonUniqueStats[i];
-        unSuccMatch += noMatchStats[i];
-    }
-    return true;
-}
+				if(succQueryFwdFirst) {
+					int succQueryFwdSecond, succQueryRevSecond = 0;
+					MATCH::match matchFwdSecond = 0;
+					ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saFwdSecond(r.seq.substr(fwdFirstLength), lmap);
+					succQueryFwdSecond = saQuerySeedSetRef(saFwdSecond, matchFwdSecond, qThreshold);
 
+					MATCH::match matchRevSecond = 0;
+					ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saRevSecond(revSeq.substr(fwdFirstLength), lmap);
+					succQueryRevSecond = saQuerySeedSetRef(saRevSecond, matchRevSecond, qThreshold);
 
-bool ReadQueue::matchReadsLocal(const unsigned int& procReads, uint64_t& succMatch, uint64_t& nonUniqueMatch, uint64_t& unSuccMatch, const bool getStranded)
-{
+					if(succQueryFwdSecond && succQueryRevSecond) {
+						succQueryFwd = -1;
+					}
+					else if(succQueryFwdSecond) {
+						matchFwdFirstSecond = matchFwdSecond;
+					}
+					else if(succQueryRevSecond) {
+						matchFwdFirstSecond = matchRevSecond;
+					}
+					else {
+						succQueryFwdFirst = 0;
+					}
+				}
 
-    // reset all counters
-    for (unsigned int i = 0; i < CORENUM; ++i)
-    {
-        matchStats[i] = 0;
-        nonUniqueStats[i] = 0;
-        noMatchStats[i] = 0;
-    }
+				int succQueryRevFirst = 0;
+				MATCH::match matchRevFirst = 0;
+				MATCH::match matchRevFirstSecond = 0;
+				uint8_t revFirstLength = 0;
+				ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saRevFirst(revSeq, lmap);
+				succQueryRevFirst = saQuerySeedSetRefLocal(saRevFirst, matchRevFirst, revFirstLength, qThreshold, minLength);
 
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(CORENUM) schedule(static)
-#endif
-    for (unsigned int i = 0; i < procReads; ++i)
-    {
+				if(succQueryRevFirst) {
+					int succQueryFwdSecond, succQueryRevSecond = 0;
+					
+					MATCH::match matchFwdSecond = 0;
+					ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saFwdSecond(r.seq.substr(revFirstLength), lmap);
+					succQueryRevSecond = saQuerySeedSetRef(saFwdSecond, matchFwdSecond, qThreshold);
 
-        int threadnum = omp_get_thread_num();
+					MATCH::match matchRevSecond = 0;
+					ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saRevSecond(revSeq.substr(revFirstLength), lmap);
+					succQueryRevSecond = saQuerySeedSetRef(saRevSecond, matchRevSecond, qThreshold);
 
-        uint64_t& succMatchT = matchStats[threadnum];
-        uint64_t& nonUniqueMatchT = nonUniqueStats[threadnum];
-        uint64_t& unSuccMatchT = noMatchStats[threadnum];
-        Read& r = readBuffer[i];
+					if(succQueryFwdSecond && succQueryRevSecond) {
+						succQueryRev = -1;
+					}
+					else if(succQueryFwdSecond) {
+						matchRevFirstSecond = matchFwdSecond;
+					}
+					else if(succQueryRevSecond) {
+						matchRevFirstSecond = matchRevSecond;
+					}
+					else {
+						succQueryRevFirst = 0;
+					}
 
-        const size_t readSize = r.seq.size();
+				}
 
-        if (readSize < MyConst::READLEN - 20)
-        {
+				if(succQueryFwdFirst && !succQueryRevFirst) {
+					firstMatch = matchFwdFirst;
+					firstLength = fwdFirstLength;
+					secondMatch = matchFwdFirstSecond;
+					success = 1;
+				}
+				else if(!succQueryFwdFirst && succQueryRevFirst) {
+					firstMatch = matchRevFirst;
+					firstLength = revFirstLength;
+					secondMatch = matchRevFirstSecond;
+					success = 1;
+				}
+				else if(succQueryFwdFirst && succQueryRevFirst) {
+					if(fwdFirstLength > revFirstLength) {
+						firstMatch = matchFwdFirst;
+						firstLength = fwdFirstLength;
+						secondMatch = matchFwdFirstSecond;
+						success = 1;
+					}
+					else if(fwdFirstLength < revFirstLength) {
+						firstMatch = matchRevFirst;
+						firstLength = revFirstLength;
+						secondMatch = matchRevFirstSecond;
+						success = 1;
+					}
+					else {
+						success = -1;
+					}
+				}
+				else if(succQueryFwdFirst == 0 && succQueryRevFirst == 0) {
+					success = 0;
+				}
+				else {
+					success = -1;
+				}
 
-            r.isInvalid = true;
-            continue;
-        }
-
-        // flag stating if read contains N
-        // reads with N are ignored
-        bool nflag = false;
-
-        // get correct offset for reverse strand (strand orientation must be correct)
-        size_t revPos = readSize - 1;
-
-        // string containing reverse complement (under FULL alphabet)
-        std::string revSeq;
-        revSeq.resize(readSize);
-
-        // construct reduced alphabet sequence for forward and reverse strand
-        for (size_t pos = 0; pos < readSize; ++pos, --revPos)
-        {
-
-            switch (r.seq[pos])
-            {
-                case 'A':
-
-                    revSeq[revPos] = 'T';
-                    break;
-
-                case 'C':
-
-                    revSeq[revPos] = 'G';
-                    break;
-
-                case 'G':
-
-                    revSeq[revPos] = 'C';
-                    break;
-
-                case 'T':
-
-                    revSeq[revPos] = 'A';
-                    break;
-
-                case 'N':
-
-                    nflag = true;
-                    break;
-
-                default:
-
-                    std::cerr << "Unknown character '" << r.seq[pos] << "' in read with sequence id " << r.id << std::endl;
-            }
-        }
-
-        if (nflag)
-        {
-            r.isInvalid = true;
-            continue;
-        }
-
-		uint16_t qThreshold = MyConst::QTHRESH;
-
-        MATCH::match matchFwd = 0;
-
-		int succQueryFwd = 0;
-		if (bothStrandsFlag || getStranded || matchR1Fwd)
-		{
-			getSeedRefs(r.seq, readSize, qThreshold);
-			ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saFwd(r.seq, lmap);
-			succQueryFwd = saQuerySeedSetRef(saFwd, matchFwd, qThreshold);
-		}
-
-        MATCH::match matchRev = 0;
-		int succQueryRev = 0;
-		if (bothStrandsFlag || getStranded || !matchR1Fwd)
-		{
-			getSeedRefs(revSeq, readSize, qThreshold);
-			ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saRev(revSeq, lmap);
-			succQueryRev = saQuerySeedSetRef(saRev, matchRev, qThreshold);
-		}
-
-        // found match for fwd and rev automaton
-        if (succQueryFwd == 1 && succQueryRev == 1)
-        {
-
-            uint8_t fwdErr = MATCH::getErrNum(matchFwd);
-            uint8_t revErr = MATCH::getErrNum(matchRev);
-
-            // check which one has fewer errors
-            if (fwdErr < revErr)
-            {
-
-				if (getStranded)
-#pragma omp atomic
-					++r1FwdMatches;
-                ++succMatchT;
-                r.mat = matchFwd;
-                computeMethLvl(matchFwd, r.seq);
-
-            } else {
-
-                if (fwdErr > revErr)
-                {
-
-					if (getStranded)
-#pragma omp atomic
-						++r1RevMatches;
-                    ++succMatchT;
-                    r.mat = matchRev;
-                    computeMethLvl(matchRev, revSeq);
-
-                // if same number of errors, then not unique
-                } else {
-
-                    const uint32_t metaFwd = MATCH::getMetaID(matchFwd);
-                    const uint32_t metaRev = MATCH::getMetaID(matchRev);
-                    const uint64_t offFwd = MATCH::getOffset(matchFwd);
-                    const uint64_t offRev = MATCH::getOffset(matchRev);
-                    const bool m1_isFwd = MATCH::isFwd(matchFwd);
-                    const bool m2_isFwd = MATCH::isFwd(matchRev);
-                    const bool m1_isStart = MATCH::isStart(matchFwd);
-                    const bool m2_isStart = MATCH::isStart(matchRev);
-                    uint32_t m1_pos;
-                    uint32_t m2_pos;
-                    if (m1_isStart && m2_isStart)
-                    {
-
-                        m1_pos = offFwd;
-                        m2_pos = offRev;
-
-                    } else {
-
-                        m1_pos = ref.metaWindows[metaFwd].startPos + offFwd;
-                        m2_pos = ref.metaWindows[metaRev].startPos + offRev;
-                    }
-                    // test if same match in same region
-                    if ((m1_isStart == m2_isStart) && (m1_isFwd == m2_isFwd) && (m1_pos == m2_pos))
-                    {
-                        ++succMatchT;
-						if (getStranded)
-#pragma omp atomic
-							++r1FwdMatches;
-                        r.mat = matchFwd;
-                        computeMethLvl(matchFwd, r.seq);
-
-                    } else {
-
-                        ++nonUniqueMatchT;
-
-                        r.isInvalid = true;
-                    }
-                }
-            }
-        // unique match on forward strand
-        } else if (succQueryFwd == 1) {
-
-            if (succQueryRev == -1)
-            {
-                if (MATCH::getErrNum(matchFwd) < MATCH::getErrNum(matchRev))
-                {
-                    ++succMatchT;
-					if (getStranded)
-#pragma omp atomic
-						++r1FwdMatches;
-                    r.mat = matchFwd;
-                    computeMethLvl(matchFwd, r.seq);
-                } else {
-
-                    ++nonUniqueMatchT;
-                    r.isInvalid = true;
-                }
-            } else {
-
-                ++succMatchT;
-				if (getStranded)
-#pragma omp atomic
-					++r1FwdMatches;
-                r.mat = matchFwd;
-                computeMethLvl(matchFwd, r.seq);
-            }
-
-        // unique match on backward strand
-        } else if (succQueryRev == 1) {
-
-            if (succQueryFwd == -1)
-            {
-                if (MATCH::getErrNum(matchRev) < MATCH::getErrNum(matchFwd))
-                {
-                    ++succMatchT;
-					if (getStranded)
-#pragma omp atomic
-						++r1RevMatches;
-                    r.mat = matchRev;
-                    computeMethLvl(matchRev, revSeq);
-                } else {
-
-                    ++nonUniqueMatchT;
-                    r.isInvalid = true;
-                }
-            } else {
-
-                ++succMatchT;
-				if (getStranded)
-#pragma omp atomic
-					++r1RevMatches;
-                r.mat = matchRev;
-                computeMethLvl(matchRev, revSeq);
-            }
-
-        // no match found at all
-        } else {
-
-            if (succQueryFwd == -1 || succQueryRev == -1)
-            {
-                ++nonUniqueMatchT;
-            	r.isInvalid = true;
-            } else {
-				if(LocalMatching()) {
-
-				} else {
+				if(success) {
+					computeMethLvl(firstMatch, r.seq.substr(0, firstLength-1)); // Slightly edit needed on computeMethLvl because of MyConst::READLEN
+					computeMethLvl(secondMatch, r.seq.substr(firstLength));
+					++succMatchT;
+				}
+				else if(success == 0)
+				{
 					r.isInvalid = true;
 					++unSuccMatchT;
 				}
-            }
+				else if(success == -1)
+				{
+					r.isInvalid = true;
+					++nonUniqueMatchT;
+				}
+			}
+			else {
+				r.isInvalid = true;
+				if (succQueryFwd == -1 || succQueryRev == -1)
+				{
+					++nonUniqueMatchT;
+
+				} else {
+					++unSuccMatchT;
+				}
+			}  
         }
     }
 
@@ -858,29 +716,6 @@ bool ReadQueue::matchReadsLocal(const unsigned int& procReads, uint64_t& succMat
         unSuccMatch += noMatchStats[i];
     }
     return true;
-}
-
-bool ReadQueue::LocalMatching() {
-		uint16_t qThreshold = MyConst::QTHRESH;
-
-        MATCH::match matchFwd = 0;
-
-		int succQueryFwd = 0;
-		if (bothStrandsFlag || getStranded || matchR1Fwd)
-		{
-			getSeedRefs(r.seq, readSize, qThreshold);
-			ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saFwd(r.seq, lmap);
-			succQueryFwd = saQuerySeedSetRef(saFwd, matchFwd, qThreshold);
-		}
-
-        MATCH::match matchRev = 0;
-		int succQueryRev = 0;
-		if (bothStrandsFlag || getStranded || !matchR1Fwd)
-		{
-			getSeedRefs(revSeq, readSize, qThreshold);
-			ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saRev(revSeq, lmap);
-			succQueryRev = saQuerySeedSetRef(saRev, matchRev, qThreshold);
-		}
 }
 
 
@@ -1274,16 +1109,8 @@ bool ReadQueue::matchSCBatch(const char* scFile, const std::string scId, const b
     // fill counting structure for parallelization
     for (unsigned int j = 0; j < CORENUM; ++j)
     {
-
-        // fwdMetaIDs[j] = google::dense_hash_map<uint32_t, uint16_t, MetaHash>();
-        // revMetaIDs[j] = google::dense_hash_map<uint32_t, uint16_t, MetaHash>();
-        // fwdMetaIDs[j].set_deleted_key(ref.metaWindows.size() + 10);
-        // revMetaIDs[j].set_deleted_key(ref.metaWindows.size() + 10);
-        // fwdMetaIDs[j].set_empty_key(ref.metaWindows.size() + 11);
-        // revMetaIDs[j].set_empty_key(ref.metaWindows.size() + 11);
-		fwdMetaIDs[i] = tsl::hopscotch_map<uint32_t, uint16_t, MetaHash>(); //???????????
-		revMetaIDs[i] = tsl::hopscotch_map<uint32_t, uint16_t, MetaHash>();
-
+		fwdMetaIDs[j] = tsl::hopscotch_map<uint32_t, uint16_t, MetaHash>();
+		revMetaIDs[j] = tsl::hopscotch_map<uint32_t, uint16_t, MetaHash>();
     }
 	if (!bothStrandsFlag)
 	{
@@ -1325,76 +1152,6 @@ bool ReadQueue::matchSCBatch(const char* scFile, const std::string scId, const b
 		// 	return EXIT_FAILURE;
 		// }
 
-    } else {
-
-        file.close();
-		file.clear();
-    }
-	printSCMethylationLevels(scId);
-	return true;
-}
-
-bool ReadQueue::matchSCBatchLocal(const char* scFile, const std::string scId, const bool isGZ)
-{
-    unsigned int readCounter = 0;
-    unsigned int i = 0;
-    // counter
-    uint64_t succMatch = 0;
-    uint64_t nonUniqueMatch = 0;
-    uint64_t unSuccMatch = 0;
-
-    if (isGZ)
-    {
-        igz.open(scFile);
-		if (!igz.good())
-		{
-			std::cerr << "ERROR: Opening file `" << std::string(scFile) << "' failed.\n";
-			return EXIT_FAILURE;
-		}
-    } else {
-
-        file.open(scFile);
-    }
-
-	r1FwdMatches = 0;
-	r1RevMatches = 0;
-
-    // fill counting structure for parallelization
-    for (unsigned int j = 0; j < CORENUM; ++j)
-    {
-		fwdMetaIDs[i] = tsl::hopscotch_map<uint32_t, uint16_t, MetaHash>(); //???????????
-		revMetaIDs[i] = tsl::hopscotch_map<uint32_t, uint16_t, MetaHash>(); //???????????
-
-    }
-
-	if (!bothStrandsFlag)
-	{
-		++i;
-		isGZ ? parseChunkGZ(readCounter) : parseChunk(readCounter);
-		matchReads(readCounter, succMatch, nonUniqueMatch, unSuccMatch, true);
-		decideStrand();
-        std::cout << "Processed " << MyConst::CHUNKSIZE * (i) << " paired reads\n";
-	}
-
-    while(isGZ ? parseChunkGZ(readCounter) : parseChunk(readCounter))
-    {
-        ++i;
-        matchReads(readCounter, succMatch, nonUniqueMatch, unSuccMatch, false);
-        std::cout << "Processed " << MyConst::CHUNKSIZE * (i) << " paired reads\n";
-    }
-    // match remaining reads
-    matchReads(readCounter, succMatch, nonUniqueMatch, unSuccMatch, false);
-	std::cout << "Processed " << MyConst::CHUNKSIZE * (i+1) << " paired reads\n";
-
-	std::cout << "Finished " << std::string(scFile) << "\n\n";
-	std::cout << "\nOverall number of reads for cell " << scId << ": " << MyConst::CHUNKSIZE * i + readCounter;
-    std::cout << "\tOverall successfully matched: " << succMatch << "\n\tUnsuccessfully matched: " << unSuccMatch << "\n\tNonunique matches: " << nonUniqueMatch << "\n";
-	std::cout << "\n\nAlignment rate: " << (double)succMatch/(double)(2*(MyConst::CHUNKSIZE * i + readCounter)) << "\n\n\n";
-
-    if (isGZ)
-    {
-        igz.close();
-		igz.clear();
     } else {
 
         file.close();
@@ -1510,13 +1267,6 @@ bool ReadQueue::matchSCBatchPaired(const char* scFile1, const char* scFile2, con
 	printSCMethylationLevels(scId);
 	return true;
 }
-
-bool ReadQueue::matchSCBatchPairedLocal(const char* scFile1, const char* scFile2, const std::string scId, const bool isGZ) {
-	//TODO
-}
-
-
-
 
 
 void ReadQueue::printMethylationLevels(std::string& filename)
@@ -1821,6 +1571,234 @@ inline int ReadQueue::saQuerySeedSetRef(ShiftAnd<MyConst::MISCOUNT + MyConst::AD
 	return 0;
 }
 
+
+inline int ReadQueue::saQuerySeedSetRefLocal(ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS>& sa, MATCH::match& mat, uint8_t length, uint16_t& qThreshold, uint8_t minLength)
+{
+
+	// use counters to flag what has been processed so far
+	auto& fwdMetaIDs_t = fwdMetaIDs[omp_get_thread_num()];
+	auto& revMetaIDs_t = revMetaIDs[omp_get_thread_num()];
+
+	// counter for how often we had a match
+	std::array<uint8_t, MyConst::ADDMIS + MyConst::MISCOUNT + 1> multiMatch;
+	multiMatch.fill(0);
+
+
+	// will contain matches iff match is found for number of errors specified by index
+	std::array<MATCH::match, MyConst::ADDMIS + MyConst::MISCOUNT + 1> uniqueMatches;
+	std::array<uint8_t, MyConst::ADDMIS + MyConst::MISCOUNT + 1> uniqueMatchLengths;
+	uniqueMatchLengths.fill(0);
+	// store the last match found in current MetaCpG
+	uint8_t prevChr = 0;
+	uint64_t prevOff = 0xffffffffffffffffULL;
+
+
+	// check all fwd meta CpGs
+	for (const auto& m : fwdMetaIDs_t)
+	{
+		// apply qgram lemma
+		if (m.second < qThreshold)
+			continue;
+
+		auto startIt = ref.fullSeq[ref.metaWindows[m.first].chrom].begin() + ref.metaWindows[m.first].startPos;
+		auto endIt = ref.fullSeq[ref.metaWindows[m.first].chrom].begin() + ref.metaWindows[m.first].startPos + MyConst::WINLEN + MyConst::MISCOUNT + MyConst::ADDMIS - 1;
+
+		// check if CpG was too near to the end
+		if (endIt > ref.fullSeq[ref.metaWindows[m.first].chrom].end())
+		{
+			endIt = ref.fullSeq[ref.metaWindows[m.first].chrom].end();
+		}
+
+		// use shift and to find all matchings
+		std::vector<uint64_t> matchings;
+		std::vector<uint8_t> errors;
+		std::vector<uint8_t> lengths;
+		sa.querySeqLocal(startIt, endIt, matchings, errors, lengths, minLength);
+
+		size_t i = 0;
+		// compare first found match with last found match of previous meta CpG
+		if (matchings.size() > 0)
+		{
+			// compare chromosome and offset
+			if (matchings[0] + ref.metaWindows[m.first].startPos == prevOff && ref.metaWindows[m.first].chrom == prevChr)
+			{
+				++i;
+			}
+		}
+		// go through matching and see if we had such a match (with that many errors) before - if so,
+		// return to caller reporting no match
+		for (; i < matchings.size(); ++i)
+		{
+
+			// check if we had a match with that many errors before
+			if (multiMatch[errors[i]] && uniqueMatchLengths[errors[i]] < lengths[i])
+			{
+
+				MATCH::match& match_2 = uniqueMatches[errors[i]];
+				const bool isStart = MATCH::isStart(match_2);
+				const bool isFwd = MATCH::isFwd(match_2);
+				// check if same k-mer (borders of meta CpGs)
+				if (isFwd && !isStart && ref.metaWindows[MATCH::getMetaID(match_2)].startPos + MATCH::getOffset(match_2) == ref.metaWindows[m.first].startPos + matchings[i])
+				{
+					continue;
+
+				} else {
+
+					// check if this is a match without errors
+					if (!errors[i] && lengths[i] == MyConst::READLEN - 1)
+					{
+
+						// if so, return without a match
+						return -1;
+
+					}
+					// set the number of matches with that many errors to 2
+					// indicating that we do not have a unique match with that many errors
+					multiMatch[errors[i]] = 2;
+				}
+
+
+			} else {
+				// we don't have such a match yet,
+				// so save this match at the correct position
+				uniqueMatches[errors[i]] = MATCH::constructMatch(matchings[i], errors[i], 1, 0, m.first);
+				uniqueMatchLengths[errors[i]] = lengths[i];
+				multiMatch[errors[i]] = 1;
+			}
+		}
+		if (matchings.size() > 0)
+		{
+
+			prevChr = ref.metaWindows[m.first].chrom;
+			prevOff = ref.metaWindows[m.first].startPos + matchings[matchings.size() - 1];
+
+		} else {
+
+			prevChr = 0;
+			prevOff = 0xffffffffffffffffULL;
+		}
+	}
+	prevChr = 0;
+	prevOff = 0xffffffffffffffffULL;
+	// go through reverse sequences
+	for (const auto& m : revMetaIDs_t)
+	{
+
+		// apply qgram lemma
+		if (m.second < qThreshold)
+			continue;
+
+		// retrieve sequence
+		auto endIt = ref.fullSeq[ref.metaWindows[m.first].chrom].begin();
+
+		if (ref.metaWindows[m.first].startPos > 0)
+		{
+			endIt += ref.metaWindows[m.first].startPos - 1;
+		}
+
+		auto startIt = ref.fullSeq[ref.metaWindows[m.first].chrom].begin() + ref.metaWindows[m.first].startPos + MyConst::WINLEN + MyConst::MISCOUNT + MyConst::ADDMIS - 1;
+		if (startIt >= ref.fullSeq[ref.metaWindows[m.first].chrom].end())
+		{
+			startIt = ref.fullSeq[ref.metaWindows[m.first].chrom].end() - 1;
+		}
+
+		// use shift and to find all matchings
+		std::vector<uint64_t> matchings;
+		std::vector<uint8_t> errors;
+		std::vector<uint8_t> lengths;
+		sa.queryRevSeqLocal(startIt, endIt, matchings, errors, lengths, minLength);
+
+		size_t i = 0;
+		// compare first found match with last found match of previous meta CpG
+		if (matchings.size() > 0)
+		{
+			// compare chromosome and offset
+			if (matchings[0] + ref.metaWindows[m.first].startPos == prevOff && ref.metaWindows[m.first].chrom == prevChr)
+			{
+				++i;
+			}
+		}
+		// go through matching and see if we had such a match (with that many errors) before - if so,
+		// return to caller reporting no match
+		for (; i < matchings.size(); ++i)
+		{
+
+			// check if we had a match with that many errors before
+			if (multiMatch[errors[i]] && uniqueMatchLengths[errors[i]] < lengths[i])
+			{
+
+				MATCH::match& match_2 = uniqueMatches[errors[i]];
+				const bool isStart = MATCH::isStart(match_2);
+				const bool isFwd = MATCH::isFwd(match_2);
+				// check if same k-mer (borders of meta CpGs)
+				if (!isFwd && !isStart && ref.metaWindows[MATCH::getMetaID(match_2)].startPos + MATCH::getOffset(match_2) == ref.metaWindows[m.first].startPos + matchings[i])
+				{
+					continue;
+
+				} else {
+
+					// check if this is a match without errors
+					if (!errors[i] && lengths[i] == MyConst::READLEN - 1)
+					{
+
+						// if so, return without a match
+						return -1;
+
+					}
+					// set the number of matches with that many errors to 2
+					// indicating that we do not have a unique match with that many errors
+					multiMatch[errors[i]] = 2;
+				}
+
+
+			} else {
+
+				// we don't have such a match yet,
+				// so save this match at the correct position
+				uniqueMatches[errors[i]] = MATCH::constructMatch(matchings[i], errors[i], 0, 0, m.first);
+				uniqueMatchLengths[errors[i]] = lengths[i];
+				multiMatch[errors[i]] = 1;
+			}
+		}
+		if (matchings.size() > 0)
+		{
+
+			prevChr = ref.metaWindows[m.first].chrom;
+			prevOff = ref.metaWindows[m.first].startPos + matchings[matchings.size() - 1];
+
+		} else {
+
+			prevChr = 0;
+			prevOff = 0xffffffffffffffffULL;
+		}
+	}
+
+	// go through found matches for each [0,maxErrorNumber] and see if it is unique
+	for (size_t i = 0; i < multiMatch.size(); ++i)
+	{
+		// there is no match with that few errors, search the one with more errors
+		if (multiMatch[i] == 0)
+		{
+			continue;
+		}
+		mat = uniqueMatches[i];
+		length = uniqueMatchLengths[i];
+		// if match is not unique, return unsuccessfull to caller
+		if (multiMatch[i] > 1)
+		{
+
+			return -1;
+
+		// exactly one with that many errors - return successfull
+		} else {
+
+			return 1;
+		}
+
+	}
+	// we have not a single match at all, return unsuccessfull to caller
+	return 0;
+}
 
 
 
