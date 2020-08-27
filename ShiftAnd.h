@@ -237,8 +237,8 @@ inline void ShiftAnd<E>::querySeqLocal(std::vector<char>::iterator start, std::v
         }
 
         uint8_t errNum;
-        errNum = std::distance(best, std::max_element(best, E);
-        unint64_t matchLength = best[errNum];
+        errNum = std::distance(best, std::max_element(best, E));
+        uint64_t matchLength = best[errNum];
 
 
         if(matchLength >= minLength) {
@@ -388,8 +388,8 @@ inline void ShiftAnd<E>::queryRevSeqLocal(std::vector<char>::iterator start, std
         }
 
         uint8_t errNum;
-        errNum = std::distance(best, std::max_element(best, E);
-        unint64_t matchLength = best[errNum];
+        errNum = std::distance(best, std::max_element(best, E));
+        uint64_t matchLength = best[errNum];
 
 
         if(matchLength >= minLength) {

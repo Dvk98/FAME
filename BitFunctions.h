@@ -167,7 +167,7 @@ static inline int32_t getLowestIdx32(uint32_t& bitseq)
 }
 
 int getHighestIdx64(uint64_t& n) {
-   int k = (int)(log2(n));
+   int k = (int)(std::log2(n));
    return k;
 }
 
@@ -180,7 +180,7 @@ int getHighestIdx64Alt(uint64_t& n)
     n |= n >> 16; 
     n |= n >> 32;
     n = n + 1; 
-    return log2((n >> 1)); 
+    return std::log2((n >> 1)); 
 }
 
 

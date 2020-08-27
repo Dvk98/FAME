@@ -301,8 +301,9 @@ int main(int argc, char** argv)
 			if (scFlag)
 			{
 				ReadQueue rQue(scOutputFile, ref, readsGZ, bothStrandsFlag, false);
-                    queryRoutineSC(rQue, readsGZ, bothStrandsFlag, scMetaFile);
-                    rQue.printMethylationLevels(outputFile);
+                rQue.localAlign = localAlign;
+                queryRoutineSC(rQue, readsGZ, bothStrandsFlag, scMetaFile);
+                rQue.printMethylationLevels(outputFile);
 			} else {
 				if (readFile == NULL)
 				{
@@ -312,6 +313,7 @@ int main(int argc, char** argv)
 
 				}
 				ReadQueue rQue(readFile, ref, readsGZ, bothStrandsFlag);
+                rQue.localAlign = localAlign;
 				queryRoutine(rQue, readsGZ, bothStrandsFlag);
 				rQue.printMethylationLevels(outputFile);
 			}
