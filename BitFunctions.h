@@ -19,6 +19,7 @@
 #ifndef BITFUNCTIONS_H
 #define BITFUNCTIONS_H
 
+#include <cmath>
 #include "CONST.h"
 
 namespace BitFun {
