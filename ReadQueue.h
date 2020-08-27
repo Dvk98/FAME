@@ -134,7 +134,8 @@ class ReadQueue
 
 		void printSCMethylationLevels(const std::string scID);
 
-
+        bool localAlign = false;
+        
     private:
 
         // hash function for std::unordered_set of meta ids

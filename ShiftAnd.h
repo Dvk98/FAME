@@ -237,8 +237,8 @@ inline void ShiftAnd<E>::querySeqLocal(std::vector<char>::iterator start, std::v
         }
 
         uint8_t errNum;
-        errNum = std::distance(best, std::max_element(best, E);
-        unint64_t matchLength = best[errNum];
+        errNum = std::distance(best, std::max_element(best, best+E));
+        uint64_t matchLength = best[errNum];
 
 
         if(matchLength >= minLength) {
@@ -388,8 +388,8 @@ inline void ShiftAnd<E>::queryRevSeqLocal(std::vector<char>::iterator start, std
         }
 
         uint8_t errNum;
-        errNum = std::distance(best, std::max_element(best, E);
-        unint64_t matchLength = best[errNum];
+        errNum = std::distance(best, std::max_element(best, best+E));
+        uint64_t matchLength = best[errNum];
 
 
         if(matchLength >= minLength) {
@@ -871,28 +871,6 @@ inline void ShiftAnd<6>::queryLetter(const char& c)
     active[5].B_0 |= active[4].B_0 << 1;
     active[6].B_1 |= active[5].B_1 << 1 | active[5].B_0 >> 63;
     active[6].B_0 |= active[5].B_0 << 1;
-}
-
-
-
-
-template<size_t E>
-inline bool ShiftAnd<E>::isMatchLocal(uint8_t& errNum)
-{
-    int first, second;
-    for(size_t i = 0; i < E; i++)
-    {
-        second = getHighestIdx64(this->active[i].B_1) + 32;
-        if(second == 32) {
-            first = getHighestIdx64(this->active[i].B_0) + 1;
-            if(best[i] - i < first - i) best[i] = first;
-        }
-        else {
-            if(best[i] - i < second - i) best[i] = second;
-        }
-    }
-
-    errNum = std::max_element
 }
 
 template<size_t E>
