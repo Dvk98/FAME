@@ -171,7 +171,7 @@ int getHighestIdx64(uint64_t& n) {
    int k = (int)(std::log2(n));
    return k;
 }
-
+/*
 int getHighestIdx64Alt(uint64_t& n) 
 { 
     n |= n >> 1; 
@@ -183,6 +183,6 @@ int getHighestIdx64Alt(uint64_t& n)
     n = n + 1; 
     return std::log2((n >> 1)); 
 }
-
+*/
 
 #endif /* BITFUNCTIONS_H */

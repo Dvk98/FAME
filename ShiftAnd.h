@@ -23,6 +23,7 @@
 #include <array>
 #include <cstdint>
 #include <iostream>
+#include <algorithm>
 
 #include "CONST.h"
 #include "BitFunctions.h"
@@ -237,7 +238,7 @@ inline void ShiftAnd<E>::querySeqLocal(std::vector<char>::iterator start, std::v
         }
 
         uint8_t errNum;
-        errNum = std::distance(best, std::max_element(best, best+E));
+        errNum = std::distance(best.begin(), std::max_element(best.begin(), best.begin()+E));
         uint64_t matchLength = best[errNum];
 
 
@@ -388,7 +389,7 @@ inline void ShiftAnd<E>::queryRevSeqLocal(std::vector<char>::iterator start, std
         }
 
         uint8_t errNum;
-        errNum = std::distance(best, std::max_element(best, best+E));
+        errNum = std::distance(best.begin(), std::max_element(best.begin(), best.begin()+E));
         uint64_t matchLength = best[errNum];
 
 

@@ -575,6 +575,7 @@ bool ReadQueue::matchReads(const unsigned int& procReads, uint64_t& succMatch, u
         } else {
 
 			if(localAlign) {
+				uint8_t minLength = 30;
 				int success = 0;
 				MATCH::match firstMatch, secondMatch = 0;
 				uint8_t firstLength = 0;
@@ -588,12 +589,15 @@ bool ReadQueue::matchReads(const unsigned int& procReads, uint64_t& succMatch, u
 
 				if(succQueryFwdFirst) {
 					int succQueryFwdSecond, succQueryRevSecond = 0;
+					
 					MATCH::match matchFwdSecond = 0;
-					ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saFwdSecond(r.seq.substr(fwdFirstLength), lmap);
+					std::string fwdSubstring = r.seq.substr(fwdFirstLength);
+					ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saFwdSecond(fwdSubstring, lmap);
 					succQueryFwdSecond = saQuerySeedSetRef(saFwdSecond, matchFwdSecond, qThreshold);
 
 					MATCH::match matchRevSecond = 0;
-					ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saRevSecond(revSeq.substr(fwdFirstLength), lmap);
+					std::string revSubstring = revSeq.substr(fwdFirstLength);
+					ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saRevSecond(revSubstring, lmap);
 					succQueryRevSecond = saQuerySeedSetRef(saRevSecond, matchRevSecond, qThreshold);
 
 					if(succQueryFwdSecond && succQueryRevSecond) {
@@ -621,11 +625,13 @@ bool ReadQueue::matchReads(const unsigned int& procReads, uint64_t& succMatch, u
 					int succQueryFwdSecond, succQueryRevSecond = 0;
 					
 					MATCH::match matchFwdSecond = 0;
-					ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saFwdSecond(r.seq.substr(revFirstLength), lmap);
+					std::string fwdSubstring = r.seq.substr(revFirstLength);
+					ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saFwdSecond(fwdSubstring, lmap);
 					succQueryRevSecond = saQuerySeedSetRef(saFwdSecond, matchFwdSecond, qThreshold);
 
 					MATCH::match matchRevSecond = 0;
-					ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saRevSecond(revSeq.substr(revFirstLength), lmap);
+					std::string revSubstring = revSeq.substr(revFirstLength);
+					ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saRevSecond(revSubstring, lmap);
 					succQueryRevSecond = saQuerySeedSetRef(saRevSecond, matchRevSecond, qThreshold);
 
 					if(succQueryFwdSecond && succQueryRevSecond) {
@@ -680,8 +686,10 @@ bool ReadQueue::matchReads(const unsigned int& procReads, uint64_t& succMatch, u
 				}
 
 				if(success) {
-					computeMethLvl(firstMatch, r.seq.substr(0, firstLength-1)); // Slightly edit needed on computeMethLvl because of MyConst::READLEN
-					computeMethLvl(secondMatch, r.seq.substr(firstLength));
+					std::string firstMatchSeq = r.seq.substr(0, firstLength - 1);
+					std::string secondMatchSeq = r.seq.substr(0, firstLength);
+					computeMethLvl(firstMatch, firstMatchSeq); // Slightly edit needed on computeMethLvl because of MyConst::READLEN
+					computeMethLvl(secondMatch, secondMatchSeq);
 					++succMatchT;
 				}
 				else if(success == 0)
