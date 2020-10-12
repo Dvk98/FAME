@@ -183,6 +183,7 @@ TEST(readLine_test, smallChars2)
 // >C
 // AACTCTTTGGTAATTGTGAATTATGGGGGGGCGAATTAAAAAACTGGGAAATGTGAACAACAAA
 //
+
 TEST(readReference_test, SimpleFile1)
 {
 

@@ -17,8 +17,6 @@
 //	Jonas Fischer	jonaspost@web.de
 
 #include "gtest/gtest.h"
-
-
 #include "ShiftAnd.h"
 
 
@@ -39,10 +37,9 @@ class ShiftAnd_test : public testing::Test {
 
 
 
-        std::array<uint8_t, 256> lmap;
+        std::array<uint8_t, 16> lmap;
 
 };
-
 
 // tests the reset function for resetting the set of active states
 // which are represented by bitvectors internally
@@ -210,6 +207,19 @@ TEST_F(ShiftAnd_test, bitmaskBisulfite)
     ASSERT_EQ(0xfffffffffffff8edULL, maskT_0);
 }
 
+TEST_F(ShiftAnd_test, GetHighestBit) {
+    std::string tSeq = "AAAAAAAAAAAAAAAAAAAAAC";
+    std::string p = "AAC";
+
+    std::vector<char> t (tSeq.begin(), tSeq.end());
+
+    ShiftAnd<1> sa1(p, lmap);
+
+    std::vector<uint64_t> matchings;
+    std::vector<uint8_t> errors;
+    std::vector<uint8_t> length;
+    sa1.querySeqLocal(t.begin(), t.end(), matchings, errors, length, 3);
+}
 
 // simple matching test with
 // same sequence for text as for pattern

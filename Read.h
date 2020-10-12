@@ -63,6 +63,12 @@ class Read
         // The matching positions of the read
         MATCH::match mat;
 
+        bool localAligned = false;
+        MATCH::match mat1;
+        MATCH::match mat2;
+        uint8_t length1 = 0;
+        uint8_t length2 = 0;
+
         // flag stating if read has an N in sequence or is too small (< Kmerlength)
         // OR maps to multiple locations in the genome
         // if this is the case, it won't be processed

@@ -71,6 +71,7 @@ class ShiftAnd
         inline void querySeq(std::vector<char>::iterator start, std::vector<char>::iterator end, std::vector<uint64_t>& matches, std::vector<uint8_t>& errors);
         inline void queryRevSeq(std::vector<char>::iterator start, std::vector<char>::iterator end, std::vector<uint64_t>& matches, std::vector<uint8_t>& errors);
 
+        inline void queryLocal(std::vector<uint64_t>& matches, std::vector<uint8_t>& errors, std::vector<uint8_t>& length, int minLength, size_t& numCompLets, auto start, auto it);
         inline void querySeqLocal(std::vector<char>::iterator start, std::vector<char>::iterator end, std::vector<uint64_t>& matches, std::vector<uint8_t>& errors, std::vector<uint8_t>& length,  int minLength);
         inline void queryRevSeqLocal(std::vector<char>::iterator start, std::vector<char>::iterator end, std::vector<uint64_t>& matches, std::vector<uint8_t>& errors, std::vector<uint8_t>& length, int minLength);
 
@@ -194,16 +195,50 @@ inline void ShiftAnd<E>::querySeq(std::vector<char>::iterator start, std::vector
 }
 
 template<size_t E>
+inline void ShiftAnd<E>::queryLocal(std::vector<uint64_t>& matches, std::vector<uint8_t>& errors, std::vector<uint8_t>& length, int minLength, size_t& numCompLets, auto start, auto it) {
+    ++numCompLets;
+
+    if(numCompLets < minLength) {
+        return;
+    }
+
+    int first, second;
+    std::vector<int> highestIdxs;
+    for(size_t i = 0; i <= E; i++)
+    {
+        second = BitFun::getHighestIdx64(this->active[i].B_1) + 32;
+        if(second == 32) {
+            first = BitFun::getHighestIdx64(this->active[i].B_0);
+            //if(best[i] < first) best[i] = first;
+            highestIdxs.push_back(first);
+        }
+        else {
+            //if(best[i] < second) best[i] = second;
+            highestIdxs.push_back(second);
+        }
+    }
+
+    uint8_t errNum;
+    int bestMatchLength = 0;
+    for(size_t i = 0; i <= E; i++) {
+        if(bestMatchLength < highestIdxs[i] - i - 1) {
+            bestMatchLength = highestIdxs[i] - i - 1;
+            errNum = i;
+        }
+    }
+
+    if(bestMatchLength >= minLength) {
+        matches.push_back(it-start + 1 - bestMatchLength);
+        errors.push_back(errNum);
+        length.push_back(bestMatchLength);
+    }
+}
+
+template<size_t E>
 inline void ShiftAnd<E>::querySeqLocal(std::vector<char>::iterator start, std::vector<char>::iterator end, std::vector<uint64_t>& matches, std::vector<uint8_t>& errors, std::vector<uint8_t>& length, int minLength)
 {
 
     reset();
-
-    std::vector<int> best;
-    for(size_t i = 0; i < E; i++)
-    {
-        best.push_back(0);
-    }
 
     uint8_t prevErrs = MyConst::MISCOUNT + 1;
     size_t numCompLets = 0;
@@ -218,42 +253,7 @@ inline void ShiftAnd<E>::querySeqLocal(std::vector<char>::iterator start, std::v
         }
         queryLetter(*it);
 
-        ++numCompLets;
-
-        if(numCompLets < minLength) {
-            continue;
-        }
-
-        int first, second;
-        for(size_t i = 0; i < E; i++)
-        {
-            second = getHighestIdx64(this->active[i].B_1) + 32;
-            if(second == 32) {
-                first = getHighestIdx64(this->active[i].B_0) + 1;
-                if(best[i] < first) best[i] = first;
-            }
-            else {
-                if(best[i] < second) best[i] = second;
-            }
-        }
-
-        uint8_t errNum;
-        errNum = std::distance(best.begin(), std::max_element(best.begin(), best.begin()+E));
-        uint64_t matchLength = best[errNum];
-
-
-        if(matchLength >= minLength) {
-            if (errNum <= prevErrs) {
-                matches.back() = it - start;
-                errors.back() = errNum;
-                prevErrs = errNum;
-            }  else {
-                matches.push_back(it - start);
-                errors.push_back(errNum);
-                prevErrs = errNum;
-            }
-            minLength = matchLength;
-        }
+        queryLocal(matches, errors, length, minLength, numCompLets, start, it);
 
     }
 }
@@ -336,12 +336,6 @@ inline void ShiftAnd<E>::queryRevSeqLocal(std::vector<char>::iterator start, std
 {
     reset();
 
-    std::vector<int> best;
-    for(size_t i = 0; i < E; i++)
-    {
-        best.push_back(0);
-    }
-
     uint8_t prevErrs = MyConst::MISCOUNT + 1;
     size_t numCompLets = 0;
     for (auto it = start; it < end; ++it)
@@ -369,43 +363,7 @@ inline void ShiftAnd<E>::queryRevSeqLocal(std::vector<char>::iterator start, std
                 exit(1);
         }
 
-        ++numCompLets;
-
-        if(numCompLets < minLength) {
-            continue;
-        }
-
-        int first, second;
-        for(size_t i = 0; i < E; i++)
-        {
-            second = getHighestIdx64(this->active[i].B_1) + 32;
-            if(second == 32) {
-                first = getHighestIdx64(this->active[i].B_0) + 1;
-                if(best[i] < first) best[i] = first;
-            }
-            else {
-                if(best[i] < second) best[i] = second;
-            }
-        }
-
-        uint8_t errNum;
-        errNum = std::distance(best.begin(), std::max_element(best.begin(), best.begin()+E));
-        uint64_t matchLength = best[errNum];
-
-
-        if(matchLength >= minLength) {
-            if (errNum <= prevErrs) {
-                matches.back() = it - start;
-                errors.back() = errNum;
-                prevErrs = errNum;
-            }  else {
-                matches.push_back(it - start);
-                errors.push_back(errNum);
-                prevErrs = errNum;
-            }
-            minLength = matchLength;
-        }
-
+        queryLocal(matches, errors, length, minLength, numCompLets, start, it);
     }
 }
 

@@ -15,7 +15,7 @@
 //	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //	Jonas Fischer	jonaspost@web.de
-
+#pragma once
 #ifndef BITFUNCTIONS_H
 #define BITFUNCTIONS_H
 
@@ -144,10 +144,9 @@ inline uint64_t getBitReprRev(const char& c)
     return 0;
 }
 
-} // end namespace BitFun
-
 // floating point conversion trick to get index of least significant set bit
     // results is -bias iff bitseq had no bit set
+
 static inline int64_t getLowestIdx64(uint64_t& bitseq)
 {
     // First mask off least significant bit set
@@ -167,12 +166,12 @@ static inline int32_t getLowestIdx32(uint32_t& bitseq)
     return (*(uint32_t*)&f >> 23) - 0x7f;
 }
 
-int getHighestIdx64(uint64_t& n) {
-   int k = (int)(std::log2(n));
-   return k;
+static inline int getHighestIdx64(uint64_t& n) {
+   if(n == 0) return 0;
+   else return (int)(std::log2(n) + 1);
 }
-/*
-int getHighestIdx64Alt(uint64_t& n) 
+
+static inline int getHighestIdx64Alt(uint64_t& n) 
 { 
     n |= n >> 1; 
     n |= n >> 2;  
@@ -183,6 +182,8 @@ int getHighestIdx64Alt(uint64_t& n)
     n = n + 1; 
     return std::log2((n >> 1)); 
 }
-*/
+
+} // end namespace BitFun
+
 
 #endif /* BITFUNCTIONS_H */

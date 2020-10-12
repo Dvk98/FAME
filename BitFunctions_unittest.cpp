@@ -15,7 +15,7 @@
 //	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //	Jonas Fischer	jonaspost@web.de
-
+/*
 #include "gtest/gtest.h"
 #include "BitFunctions.h"
 
@@ -159,3 +159,4 @@ TEST(BitFunctions, mask3)
 // ---------------------------------
 // ---------------------------------
 // ---------------------------------
+*/

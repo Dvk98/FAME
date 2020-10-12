@@ -573,8 +573,11 @@ bool ReadQueue::matchReads(const unsigned int& procReads, uint64_t& succMatch, u
 
         // no match found at all
         } else {
+            if(localAlign) {
+                matchLocalAlign(r, revSeq, qThreshold, succQueryFwd, succQueryRev, succMatchT, nonUniqueMatchT, unSuccMatchT);
+            }
+            /*if(localAlign) {
 
-			if(localAlign) {
 				uint8_t minLength = 30;
 				int success = 0;
 				MATCH::match firstMatch, secondMatch = 0;
@@ -703,7 +706,7 @@ bool ReadQueue::matchReads(const unsigned int& procReads, uint64_t& succMatch, u
 					++nonUniqueMatchT;
 				}
 			}
-			else {
+            */else {
 				r.isInvalid = true;
 				if (succQueryFwd == -1 || succQueryRev == -1)
 				{
@@ -724,6 +727,141 @@ bool ReadQueue::matchReads(const unsigned int& procReads, uint64_t& succMatch, u
         unSuccMatch += noMatchStats[i];
     }
     return true;
+}
+
+bool ReadQueue::matchLocalAlign(Read& r, std::string& revSeq, uint16_t qThreshold, int& succQueryFwd, int& succQueryRev, uint64_t& succMatchT, uint64_t& nonUniqueMatchT, uint64_t& unSuccMatchT) {
+    uint8_t minLength = 30;
+    int success = 0;
+    MATCH::match firstMatch, secondMatch = 0;
+    uint8_t firstLength = 0;
+
+    int succQueryFwdFirst = 0;
+    MATCH::match matchFwdFirst = 0;
+    MATCH::match matchFwdFirstSecond = 0;
+    uint8_t fwdFirstLength = 0;
+    ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saFwdFirst(r.seq, lmap);
+    succQueryFwdFirst = saQuerySeedSetRefLocal(saFwdFirst, matchFwdFirst, fwdFirstLength, qThreshold, minLength);
+
+    if(succQueryFwdFirst) {
+        int succQueryFwdSecond, succQueryRevSecond = 0;
+
+        MATCH::match matchFwdSecond = 0;
+        std::string fwdSubstring = r.seq.substr(fwdFirstLength);
+        ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saFwdSecond(fwdSubstring, lmap);
+        succQueryFwdSecond = saQuerySeedSetRef(saFwdSecond, matchFwdSecond, qThreshold);
+
+        MATCH::match matchRevSecond = 0;
+        std::string revSubstring = revSeq.substr(fwdFirstLength);
+        ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saRevSecond(revSubstring, lmap);
+        succQueryRevSecond = saQuerySeedSetRef(saRevSecond, matchRevSecond, qThreshold);
+
+        if(succQueryFwdSecond && succQueryRevSecond) {
+            succQueryFwd = -1;
+        }
+        else if(succQueryFwdSecond) {
+            matchFwdFirstSecond = matchFwdSecond;
+        }
+        else if(succQueryRevSecond) {
+            matchFwdFirstSecond = matchRevSecond;
+        }
+        else {
+            succQueryFwdFirst = 0;
+        }
+    }
+
+    int succQueryRevFirst = 0;
+    MATCH::match matchRevFirst = 0;
+    MATCH::match matchRevFirstSecond = 0;
+    uint8_t revFirstLength = 0;
+    ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saRevFirst(revSeq, lmap);
+    succQueryRevFirst = saQuerySeedSetRefLocal(saRevFirst, matchRevFirst, revFirstLength, qThreshold, minLength);
+
+    if(succQueryRevFirst) {
+        int succQueryFwdSecond, succQueryRevSecond = 0;
+
+        MATCH::match matchFwdSecond = 0;
+        std::string fwdSubstring = r.seq.substr(revFirstLength);
+        ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saFwdSecond(fwdSubstring, lmap);
+        succQueryRevSecond = saQuerySeedSetRef(saFwdSecond, matchFwdSecond, qThreshold);
+
+        MATCH::match matchRevSecond = 0;
+        std::string revSubstring = revSeq.substr(revFirstLength);
+        ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saRevSecond(revSubstring, lmap);
+        succQueryRevSecond = saQuerySeedSetRef(saRevSecond, matchRevSecond, qThreshold);
+
+        if(succQueryFwdSecond && succQueryRevSecond) {
+            succQueryRev = -1;
+        }
+        else if(succQueryFwdSecond) {
+            matchRevFirstSecond = matchFwdSecond;
+        }
+        else if(succQueryRevSecond) {
+            matchRevFirstSecond = matchRevSecond;
+        }
+        else {
+            succQueryRevFirst = 0;
+        }
+
+    }
+
+    if(succQueryFwdFirst && !succQueryRevFirst) {
+        firstMatch = matchFwdFirst;
+        firstLength = fwdFirstLength;
+        secondMatch = matchFwdFirstSecond;
+        success = 1;
+    }
+    else if(!succQueryFwdFirst && succQueryRevFirst) {
+        firstMatch = matchRevFirst;
+        firstLength = revFirstLength;
+        secondMatch = matchRevFirstSecond;
+        success = 1;
+    }
+    else if(succQueryFwdFirst && succQueryRevFirst) {
+        if(fwdFirstLength > revFirstLength) {
+            firstMatch = matchFwdFirst;
+            firstLength = fwdFirstLength;
+            secondMatch = matchFwdFirstSecond;
+            success = 1;
+        }
+        else if(fwdFirstLength < revFirstLength) {
+            firstMatch = matchRevFirst;
+            firstLength = revFirstLength;
+            secondMatch = matchRevFirstSecond;
+            success = 1;
+        }
+        else {
+            success = -1;
+        }
+    }
+    else if(succQueryFwdFirst == 0 && succQueryRevFirst == 0) {
+        success = 0;
+    }
+    else {
+        success = -1;
+    }
+
+    if(success) {
+        std::string firstMatchSeq = r.seq.substr(0, firstLength - 1);
+        std::string secondMatchSeq = r.seq.substr(0, firstLength);
+
+        //r.mat1 =
+
+        computeMethLvl(firstMatch, firstMatchSeq); // Slightly edit needed on computeMethLvl because of MyConst::READLEN
+        computeMethLvl(secondMatch, secondMatchSeq);
+        ++succMatchT;
+        return true;
+    }
+    else if(success == 0)
+    {
+        r.isInvalid = true;
+        ++unSuccMatchT;
+    }
+    else if(success == -1)
+    {
+        r.isInvalid = true;
+        ++nonUniqueMatchT;
+    }
+    return false;
 }
 
 

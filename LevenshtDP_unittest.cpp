@@ -15,7 +15,7 @@
 //	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //	Jonas Fischer	jonaspost@web.de
-
+/*
 #include <limits>   // numeric limits (max)
 
 #include "gtest/gtest.h"
@@ -247,3 +247,4 @@ TEST(matching_test, complexSeqAll)
 //
 //
 //
+*/

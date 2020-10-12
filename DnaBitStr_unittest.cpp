@@ -18,7 +18,7 @@
 
 #include "gtest/gtest.h"
 #include "DnaBitStr.h"
-
+/*
 
 // Test setting and reading a simple 32bp sequence of As
 TEST(DnaBitStr_test, setSimple1)
@@ -322,3 +322,4 @@ TEST(DnaBitStr_test, setLastOverlap)
     ASSERT_EQ(revBitEnc24, bitstr.getSeqKmerRev(24));
     ASSERT_EQ(revBitMask24, bitstr.getMaskKmerRev(24));
 }
+*/
