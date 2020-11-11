@@ -114,13 +114,13 @@ TEST_CASE("Local ShiftAnd_Test_Reverse", "[localShiftAnd]") {
 
 
 TEST_CASE("saQuerySeedSetRefLocal_Test", "[saQuerySeedSetRefLocal]") {
-
+    std::array<uint8_t, 16> lmap = Setup();
     // set up sequence container
-    std::string seq = "ATGTTGCCTAATTTCACTATTCAGGGTTATACGCCTGGAATATTCTAGGATTCCTAGTCAATTTAT";
+    std::string seq       = "ATGTTGCCTAATTTCACTATTCAGGGTTATACGCCTGGAATATTCTAGGATTCCTAGTCAATTTAT";
     // sequence with reduced alphabet
-    std::string redSeq = "ATGTTGTTTAATTTTATTATTTAGGGTTATATGTTTGGAATATTTTAGGATTTTTAGTTAATTTAT";
+    std::string redSeq    = "ATGTTGTTTAATTTTATTATTTAGGGTTATATGTTTGGAATATTTTAGGATTTTTAGTTAATTTAT";
     // reverse sequence
-    std::string revSeq = "ATAAATTGACTAGGAATCCTAGAATATTCCAGGCGTATAACCCTGAATAGTGAAATTAGGCAACAT";
+    std::string revSeq    = "ATAAATTGACTAGGAATCCTAGAATATTCCAGGCGTATAACCCTGAATAGTGAAATTAGGCAACAT";
     std::string redRevSeq = "ATAAATTGATTAGGAATTTTAGAATATTTTAGGTGTATAATTTTGAATAGTGAAATTAGGTAATAT";
     std::vector<char> seqV (seq.begin(), seq.end());
     std::vector<std::vector<char> > genSeq;
@@ -128,17 +128,29 @@ TEST_CASE("saQuerySeedSetRefLocal_Test", "[saQuerySeedSetRefLocal]") {
 
     // set up CpG container
     std::vector<struct CpG> cpgTab;
-    cpgTab.push_back({0, 3});
-
     std::vector<struct CpG> cpgStart;
+    cpgStart.push_back({0, 3});
 
+
+    std::unordered_map<uint8_t, std::string> chrMap;
+    std::cout << "Test1" << std::endl;
     RefGenome ref (std::move(cpgTab), std::move(cpgStart), genSeq);
-    ReadQueue()
-    saQuerySeedSetRefLocal()
+    //RefGenome ref (genSeq);
+    std::cout << "Test2" << std::endl;
+    ReadQueue rq ("test.fa", ref, false, false);
+    rq.localAlign = true;
+
+    std::string read = "ATGTTGCCTAATTTCACTATTTATTCTAGGATTCCTAGTCAATTTAT";
+    ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> sa(read, lmap);
+    MATCH::match match;
+    uint8_t length;
+    uint16_t qThreshold;
+    rq.saQuerySeedSetRefLocal(sa, match, length, qThreshold, 10);
+    std::cout << length << std::endl;
 }
 
 
-TEST_CASE("matchLocalAlign_Test", "[matchLocalAlign]") {
-
-}
+//TEST_CASE("matchLocalAlign_Test", "[matchLocalAlign]") {
+//
+//}
 

@@ -138,7 +138,7 @@ class ReadQueue
 
         bool localAlign = false;
         
-    private:
+    //private:
 
         // hash function for std::unordered_set of meta ids
         struct MetaHash

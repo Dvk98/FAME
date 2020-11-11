@@ -1722,8 +1722,8 @@ inline int ReadQueue::saQuerySeedSetRefLocal(ShiftAnd<MyConst::MISCOUNT + MyCons
 {
 
 	// use counters to flag what has been processed so far
-	auto& fwdMetaIDs_t = fwdMetaIDs[omp_get_thread_num()];
-	auto& revMetaIDs_t = revMetaIDs[omp_get_thread_num()];
+    auto& fwdMetaIDs_t = fwdMetaIDs[0];
+    auto& revMetaIDs_t = revMetaIDs[0];
 
 	// counter for how often we had a match
 	std::array<uint8_t, MyConst::ADDMIS + MyConst::MISCOUNT + 1> multiMatch;

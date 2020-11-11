@@ -73,6 +73,95 @@ RefGenome::RefGenome(std::vector<struct CpG>&& cpgTab, std::vector<struct CpG>&&
     std::cout << "\nFinished index processing.\n";
 }
 
+RefGenome::RefGenome(std::vector<struct CpG>&& cpgTab, std::vector<struct CpG>&& cpgStartTab, std::vector<std::vector<char> >& genomeSeq) :
+        cpgTable(cpgTab)
+    ,   cpgStartTable(cpgStartTab)
+    ,   fullSeq(std::move(genomeSeq))
+    ,   tabIndex(MyConst::HTABSIZE + 1, 0)
+    ,   kmerTable()
+    ,   strandTable()
+    ,   metaCpGs()
+    ,   metaStartCpGs()
+{
+
+    std::cout << "ALERT: ONLY FOR TESTING PURPOSES!" << std::endl;
+
+    if (!testPODs())
+    {
+        std::cout << "\nWARNING: Structures are not POD! Cannot write index to file savely!\n\n";
+    }
+    // find out genome size
+    size_t gensize = 0;
+    for (std::vector<char> chr : genomeSeq)
+    {
+        gensize += chr.size();
+    }
+    // init meta table with upper bound on required windows
+    // metaCpGs.reserve(gensize/MyConst::WINLEN);
+    metaWindows.reserve(gensize/MyConst::WINLEN);
+    // metaStartCpGs.reserve(MyConst::CHROMNUM);
+    // fill meta table
+    // generateMetaCpGs();
+    generateWindows();
+    // generate encoding of genome
+    // generateBitStrings(fullSeq);
+    // cout << "Done generating Genome bit representation" << endl;
+    std::cout << "\nStart hashing CpGs\n";
+    std::chrono::high_resolution_clock::time_point startTime = std::chrono::high_resolution_clock::now();
+    // hash all kmers of reduced alphabet
+    generateHashes(fullSeq);
+    std::chrono::high_resolution_clock::time_point endTime = std::chrono::high_resolution_clock::now();
+    auto runtime = std::chrono::duration_cast<std::chrono::seconds>(endTime - startTime).count();
+    std::cout << "\nDone hashing CpGs (" << runtime << "s)\n";
+    std::cout << "\nThrowing out kmers of single metaCpG with same hash...\n";
+    filterRedundancyInHashTable();
+    std::cout << "\nFinished index processing.\n";
+}
+
+RefGenome::RefGenome(std::vector<std::vector<char> >& genomeSeq) :
+        fullSeq(std::move(genomeSeq))
+{
+
+    std::cout << "Test1" << std::endl;
+    for(uint64_t i = 0; i < MyConst::HTABSIZE; i++)
+    {
+        tabIndex.emplace_back(0);
+    }
+
+    std::cout << "ALERT: ONLY FOR TESTING PURPOSES!" << std::endl;
+
+    if (!testPODs())
+    {
+        std::cout << "\nWARNING: Structures are not POD! Cannot write index to file savely!\n\n";
+    }
+    // find out genome size
+    size_t gensize = 0;
+    for (std::vector<char> chr : genomeSeq)
+    {
+        gensize += chr.size();
+    }
+    // init meta table with upper bound on required windows
+    // metaCpGs.reserve(gensize/MyConst::WINLEN);
+    metaWindows.reserve(gensize/MyConst::WINLEN);
+    // metaStartCpGs.reserve(MyConst::CHROMNUM);
+    // fill meta table
+    // generateMetaCpGs();
+    generateWindows();
+    // generate encoding of genome
+    // generateBitStrings(fullSeq);
+    // cout << "Done generating Genome bit representation" << endl;
+    std::cout << "\nStart hashing CpGs\n";
+    std::chrono::high_resolution_clock::time_point startTime = std::chrono::high_resolution_clock::now();
+    // hash all kmers of reduced alphabet
+    generateHashes(fullSeq);
+    std::chrono::high_resolution_clock::time_point endTime = std::chrono::high_resolution_clock::now();
+    auto runtime = std::chrono::duration_cast<std::chrono::seconds>(endTime - startTime).count();
+    std::cout << "\nDone hashing CpGs (" << runtime << "s)\n";
+    std::cout << "\nThrowing out kmers of single metaCpG with same hash...\n";
+    filterRedundancyInHashTable();
+    std::cout << "\nFinished index processing.\n";
+}
+
 
 RefGenome::RefGenome(std::string filepath)
 {

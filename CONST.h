@@ -91,10 +91,10 @@ constexpr unsigned int WINLEN = 2048;
 
 // number of mismatches we allow initially (can be extended by ADDMIS constant)
 // recommended is 2
-constexpr uint8_t MISCOUNT = 2;
+constexpr uint8_t MISCOUNT = 0;
 // number of mismatches we allow additionally for shift-and and alignment
 // recommended is 4
-constexpr uint8_t ADDMIS = 4;
+constexpr uint8_t ADDMIS = 0;
 
 // maximum number of times a k-mer is allowed to occur in the whole genome
 // recommended is 1500

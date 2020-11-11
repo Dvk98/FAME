@@ -50,6 +50,8 @@ class RefGenome
         //      noloss      flag that is true iff index must be lossless
 		//      chrMap		map of internal chromosome ID to external string identifier of fasta file
         RefGenome(std::vector<struct CpG>&& cpgTab, std::vector<struct CpG>&& cpgStartTab, std::vector<std::vector<char> >& genSeq, const bool noloss, std::unordered_map<uint8_t, std::string>& chromMap);
+        RefGenome(std::vector<struct CpG>&& cpgTab, std::vector<struct CpG>&& cpgStartTab, std::vector<std::vector<char> >& genSeq);
+        RefGenome(std::vector<std::vector<char> >& genSeq);
         // ARGUMENTS:
         //      filepath    file where index was saved before using RefGenome::save(...)
         RefGenome(std::string filePath);
