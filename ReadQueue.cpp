@@ -576,137 +576,7 @@ bool ReadQueue::matchReads(const unsigned int& procReads, uint64_t& succMatch, u
             if(localAlign) {
                 matchLocalAlign(r, revSeq, qThreshold, succQueryFwd, succQueryRev, succMatchT, nonUniqueMatchT, unSuccMatchT);
             }
-            /*if(localAlign) {
-
-				uint8_t minLength = 30;
-				int success = 0;
-				MATCH::match firstMatch, secondMatch = 0;
-				uint8_t firstLength = 0;
-
-				int succQueryFwdFirst = 0;
-				MATCH::match matchFwdFirst = 0;
-				MATCH::match matchFwdFirstSecond = 0;
-				uint8_t fwdFirstLength = 0;
-				ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saFwdFirst(r.seq, lmap);
-				succQueryFwdFirst = saQuerySeedSetRefLocal(saFwdFirst, matchFwdFirst, fwdFirstLength, qThreshold, minLength);
-
-				if(succQueryFwdFirst) {
-					int succQueryFwdSecond, succQueryRevSecond = 0;
-					
-					MATCH::match matchFwdSecond = 0;
-					std::string fwdSubstring = r.seq.substr(fwdFirstLength);
-					ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saFwdSecond(fwdSubstring, lmap);
-					succQueryFwdSecond = saQuerySeedSetRef(saFwdSecond, matchFwdSecond, qThreshold);
-
-					MATCH::match matchRevSecond = 0;
-					std::string revSubstring = revSeq.substr(fwdFirstLength);
-					ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saRevSecond(revSubstring, lmap);
-					succQueryRevSecond = saQuerySeedSetRef(saRevSecond, matchRevSecond, qThreshold);
-
-					if(succQueryFwdSecond && succQueryRevSecond) {
-						succQueryFwd = -1;
-					}
-					else if(succQueryFwdSecond) {
-						matchFwdFirstSecond = matchFwdSecond;
-					}
-					else if(succQueryRevSecond) {
-						matchFwdFirstSecond = matchRevSecond;
-					}
-					else {
-						succQueryFwdFirst = 0;
-					}
-				}
-
-				int succQueryRevFirst = 0;
-				MATCH::match matchRevFirst = 0;
-				MATCH::match matchRevFirstSecond = 0;
-				uint8_t revFirstLength = 0;
-				ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saRevFirst(revSeq, lmap);
-				succQueryRevFirst = saQuerySeedSetRefLocal(saRevFirst, matchRevFirst, revFirstLength, qThreshold, minLength);
-
-				if(succQueryRevFirst) {
-					int succQueryFwdSecond, succQueryRevSecond = 0;
-					
-					MATCH::match matchFwdSecond = 0;
-					std::string fwdSubstring = r.seq.substr(revFirstLength);
-					ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saFwdSecond(fwdSubstring, lmap);
-					succQueryRevSecond = saQuerySeedSetRef(saFwdSecond, matchFwdSecond, qThreshold);
-
-					MATCH::match matchRevSecond = 0;
-					std::string revSubstring = revSeq.substr(revFirstLength);
-					ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saRevSecond(revSubstring, lmap);
-					succQueryRevSecond = saQuerySeedSetRef(saRevSecond, matchRevSecond, qThreshold);
-
-					if(succQueryFwdSecond && succQueryRevSecond) {
-						succQueryRev = -1;
-					}
-					else if(succQueryFwdSecond) {
-						matchRevFirstSecond = matchFwdSecond;
-					}
-					else if(succQueryRevSecond) {
-						matchRevFirstSecond = matchRevSecond;
-					}
-					else {
-						succQueryRevFirst = 0;
-					}
-
-				}
-
-				if(succQueryFwdFirst && !succQueryRevFirst) {
-					firstMatch = matchFwdFirst;
-					firstLength = fwdFirstLength;
-					secondMatch = matchFwdFirstSecond;
-					success = 1;
-				}
-				else if(!succQueryFwdFirst && succQueryRevFirst) {
-					firstMatch = matchRevFirst;
-					firstLength = revFirstLength;
-					secondMatch = matchRevFirstSecond;
-					success = 1;
-				}
-				else if(succQueryFwdFirst && succQueryRevFirst) {
-					if(fwdFirstLength > revFirstLength) {
-						firstMatch = matchFwdFirst;
-						firstLength = fwdFirstLength;
-						secondMatch = matchFwdFirstSecond;
-						success = 1;
-					}
-					else if(fwdFirstLength < revFirstLength) {
-						firstMatch = matchRevFirst;
-						firstLength = revFirstLength;
-						secondMatch = matchRevFirstSecond;
-						success = 1;
-					}
-					else {
-						success = -1;
-					}
-				}
-				else if(succQueryFwdFirst == 0 && succQueryRevFirst == 0) {
-					success = 0;
-				}
-				else {
-					success = -1;
-				}
-
-				if(success) {
-					std::string firstMatchSeq = r.seq.substr(0, firstLength - 1);
-					std::string secondMatchSeq = r.seq.substr(0, firstLength);
-					computeMethLvl(firstMatch, firstMatchSeq); // Slightly edit needed on computeMethLvl because of MyConst::READLEN
-					computeMethLvl(secondMatch, secondMatchSeq);
-					++succMatchT;
-				}
-				else if(success == 0)
-				{
-					r.isInvalid = true;
-					++unSuccMatchT;
-				}
-				else if(success == -1)
-				{
-					r.isInvalid = true;
-					++nonUniqueMatchT;
-				}
-			}
-            */else {
+            else {
 				r.isInvalid = true;
 				if (succQueryFwd == -1 || succQueryRev == -1)
 				{
@@ -730,6 +600,7 @@ bool ReadQueue::matchReads(const unsigned int& procReads, uint64_t& succMatch, u
 }
 
 bool ReadQueue::matchLocalAlign(Read& r, std::string& revSeq, uint16_t qThreshold, int& succQueryFwd, int& succQueryRev, uint64_t& succMatchT, uint64_t& nonUniqueMatchT, uint64_t& unSuccMatchT) {
+    //std::cout << "Read could not be matched. Trying local Alignment" << std::endl;
     uint8_t minLength = 30;
     int success = 0;
     MATCH::match firstMatch, secondMatch = 0;
@@ -739,6 +610,7 @@ bool ReadQueue::matchLocalAlign(Read& r, std::string& revSeq, uint16_t qThreshol
     MATCH::match matchFwdFirst = 0;
     MATCH::match matchFwdFirstSecond = 0;
     uint8_t fwdFirstLength = 0;
+    getSeedRefs(r.seq, r.seq.size(), qThreshold);
     ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saFwdFirst(r.seq, lmap);
     succQueryFwdFirst = saQuerySeedSetRefLocal(saFwdFirst, matchFwdFirst, fwdFirstLength, qThreshold, minLength);
 
@@ -751,11 +623,14 @@ bool ReadQueue::matchLocalAlign(Read& r, std::string& revSeq, uint16_t qThreshol
         succQueryFwdSecond = saQuerySeedSetRef(saFwdSecond, matchFwdSecond, qThreshold);
 
         MATCH::match matchRevSecond = 0;
-        std::string revSubstring = revSeq.substr(fwdFirstLength);
+        std::string revSubstring = revSeq.substr(fwdFirstLength); // Maybe change here
         ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saRevSecond(revSubstring, lmap);
         succQueryRevSecond = saQuerySeedSetRef(saRevSecond, matchRevSecond, qThreshold);
 
         if(succQueryFwdSecond && succQueryRevSecond) {
+            ++nonUniqueMatchT;
+            r.isInvalid = true;
+            return false;
             succQueryFwd = -1;
         }
         else if(succQueryFwdSecond) {
@@ -790,6 +665,9 @@ bool ReadQueue::matchLocalAlign(Read& r, std::string& revSeq, uint16_t qThreshol
         succQueryRevSecond = saQuerySeedSetRef(saRevSecond, matchRevSecond, qThreshold);
 
         if(succQueryFwdSecond && succQueryRevSecond) {
+            ++nonUniqueMatchT;
+            r.isInvalid = true;
+            return false;
             succQueryRev = -1;
         }
         else if(succQueryFwdSecond) {
@@ -841,13 +719,13 @@ bool ReadQueue::matchLocalAlign(Read& r, std::string& revSeq, uint16_t qThreshol
     }
 
     if(success) {
-        std::string firstMatchSeq = r.seq.substr(0, firstLength - 1);
-        std::string secondMatchSeq = r.seq.substr(0, firstLength);
+        std::string firstMatchSeq = r.seq.substr(0, firstLength);
+        std::string secondMatchSeq = r.seq.substr(firstLength, r.seq.size());
 
         //r.mat1 =
 
-        computeMethLvl(firstMatch, firstMatchSeq); // Slightly edit needed on computeMethLvl because of MyConst::READLEN
-        computeMethLvl(secondMatch, secondMatchSeq);
+        computeMethLvlLocal(firstMatch, firstMatchSeq);
+        computeMethLvlLocal(secondMatch, secondMatchSeq);
         ++succMatchT;
         return true;
     }
@@ -1655,7 +1533,7 @@ inline int ReadQueue::saQuerySeedSetRef(ShiftAnd<MyConst::MISCOUNT + MyConst::AD
 					{
 
 						// if so, return without a match
-						return -1;
+                        return 0;
 
 					}
 					// set the number of matches with that many errors to 2
@@ -1704,7 +1582,7 @@ inline int ReadQueue::saQuerySeedSetRef(ShiftAnd<MyConst::MISCOUNT + MyConst::AD
 		if (multiMatch[i] > 1)
 		{
 
-			return -1;
+            return 0;
 
 		// exactly one with that many errors - return successfull
 		} else {
@@ -1718,12 +1596,12 @@ inline int ReadQueue::saQuerySeedSetRef(ShiftAnd<MyConst::MISCOUNT + MyConst::AD
 }
 
 
-inline int ReadQueue::saQuerySeedSetRefLocal(ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS>& sa, MATCH::match& mat, uint8_t length, uint16_t& qThreshold, uint8_t minLength)
+inline int ReadQueue::saQuerySeedSetRefLocal(ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS>& sa, MATCH::match& mat, uint8_t& length, uint16_t& qThreshold, uint8_t& minLength)
 {
 
 	// use counters to flag what has been processed so far
-    auto& fwdMetaIDs_t = fwdMetaIDs[0];
-    auto& revMetaIDs_t = revMetaIDs[0];
+    auto& fwdMetaIDs_t = fwdMetaIDs[omp_get_thread_num()];
+    auto& revMetaIDs_t = revMetaIDs[omp_get_thread_num()];
 
 	// counter for how often we had a match
 	std::array<uint8_t, MyConst::ADDMIS + MyConst::MISCOUNT + 1> multiMatch;
@@ -1777,7 +1655,7 @@ inline int ReadQueue::saQuerySeedSetRefLocal(ShiftAnd<MyConst::MISCOUNT + MyCons
 		{
 
 			// check if we had a match with that many errors before
-			if (multiMatch[errors[i]] && uniqueMatchLengths[errors[i]] < lengths[i])
+            if (multiMatch[errors[i]] && uniqueMatchLengths[errors[i]] == lengths[i])
 			{
 
 				MATCH::match& match_2 = uniqueMatches[errors[i]];
@@ -1805,6 +1683,7 @@ inline int ReadQueue::saQuerySeedSetRefLocal(ShiftAnd<MyConst::MISCOUNT + MyCons
 
 
 			} else {
+                if(uniqueMatchLengths[errors[i]] > lengths[i]) continue;
 				// we don't have such a match yet,
 				// so save this match at the correct position
 				uniqueMatches[errors[i]] = MATCH::constructMatch(matchings[i], errors[i], 1, 0, m.first);
@@ -1870,7 +1749,7 @@ inline int ReadQueue::saQuerySeedSetRefLocal(ShiftAnd<MyConst::MISCOUNT + MyCons
 		{
 
 			// check if we had a match with that many errors before
-			if (multiMatch[errors[i]] && uniqueMatchLengths[errors[i]] < lengths[i])
+            if (multiMatch[errors[i]] && uniqueMatchLengths[errors[i]] == lengths[i])
 			{
 
 				MATCH::match& match_2 = uniqueMatches[errors[i]];
@@ -1898,7 +1777,7 @@ inline int ReadQueue::saQuerySeedSetRefLocal(ShiftAnd<MyConst::MISCOUNT + MyCons
 
 
 			} else {
-
+                 if(uniqueMatchLengths[errors[i]] > lengths[i]) continue;
 				// we don't have such a match yet,
 				// so save this match at the correct position
 				uniqueMatches[errors[i]] = MATCH::constructMatch(matchings[i], errors[i], 0, 0, m.first);
@@ -3084,60 +2963,6 @@ inline void ReadQueue::computeMethLvl(MATCH::match& mat, std::string& seq)
 	if (errNum == 0)
 	{
 
-		// retrieve chromosome and position of match
-// 		if (isStart)
-// 		{
-// 			struct metaCpG& m = ref.metaStartCpGs[metaID];
-// 			// uint8_t chrom = ref.cpgStartTable[m.start].chrom;
-// 			for (uint32_t cpgId = m.start; cpgId <= m.end; ++cpgId)
-// 			{
-// 				// check if CpG is too far downstream of read match
-// 				// i.e. no overlap
-// 				if (ref.cpgStartTable[cpgId].pos < offset - seq.size())
-// 					continue;
-// 				// check if too far upstream
-// 				if (ref.cpgStartTable[cpgId].pos + 1 > offset)
-// 					break;
-//
-//
-// 				// position of CpG in read
-// 				// last term represents position of start of read in reference sequence
-// 				uint32_t readCpGPos = ref.cpgStartTable[cpgId].pos - (offset - seq.size() + 1);
-// 				if (isFwd)
-// 				{
-// 					if (seq[readCpGPos] == 'T')
-// 					{
-// #ifdef _OPENMP
-// #pragma omp atomic
-// #endif
-// 						++methLevelsStart[cpgId].unmethFwd;
-// 					} else {
-// #ifdef _OPENMP
-// #pragma omp atomic
-// #endif
-// 						++methLevelsStart[cpgId].methFwd;
-// 					}
-// 				} else {
-//
-// 					if (seq[seq.size() - readCpGPos - 1] == 'T')
-// 					{
-// #ifdef _OPENMP
-// #pragma omp atomic
-// #endif
-// 						++methLevelsStart[cpgId].unmethRev;
-// 					} else {
-// #ifdef _OPENMP
-// #pragma omp atomic
-// #endif
-// 						++methLevelsStart[cpgId].methRev;
-// 					}
-// 				}
-// 			}
-//
-//
-// 		// normal match
-		// } else {
-
 			// struct metaCpG& m = ref.metaCpGs[metaID];
 			metaWindow& m = ref.metaWindows[metaID];
 			// uint8_t chrom = ref.cpgTable[m.start].chrom;
@@ -3194,17 +3019,8 @@ inline void ReadQueue::computeMethLvl(MATCH::match& mat, std::string& seq)
 #endif
 							++methLevelsSc[cpgId].methFwd;
 						}
-					// TODO
-// 					} else {
-//
-// #ifdef _OPENMP
-// #pragma omp critical
-// #endif
-// 						{
-// 						std::cerr << "WHAT fwd!?\n";
-// 						}
+
 					}
-// 					// else std::cout << "This should not happen 1!\n";
 
 				} else {
 
@@ -3235,15 +3051,7 @@ inline void ReadQueue::computeMethLvl(MATCH::match& mat, std::string& seq)
 #endif
 							++methLevelsSc[cpgId].methRev;
 						}
-					// TODO
-// 					} else {
-//
-// #ifdef _OPENMP
-// #pragma omp critical
-// #endif
-// 						{
-// 						std::cerr << "WHAT rev!?\n";
-// 						}
+
 					}
 				}
 			}
@@ -3251,149 +3059,6 @@ inline void ReadQueue::computeMethLvl(MATCH::match& mat, std::string& seq)
 
 	// if match was errornous
 	} else {
-
-// 		if (isStart)
-// 		{
-// 			struct metaCpG& m = ref.metaStartCpGs[metaID];
-// 			uint8_t chrom = ref.cpgStartTable[m.start].chrom;
-//
-// 			const char* refSeq = ref.fullSeq[chrom].data() + offset;
-//
-// 			// init levenshtein DP algo
-// 			LevenshtDP<uint16_t, MyConst::MISCOUNT + MyConst::ADDMIS> lev(seq, refSeq);
-// 			std::vector<ERROR_T> alignment;
-//
-// 			// minimum position for overlap
-// 			uint32_t minPos = offset - (seq.size() - 1);
-// 			uint32_t maxPos = offset - 1;
-// 			// positions of first/ last overlapping CpG
-// 			uint32_t minIndex = m.start;
-// 			uint32_t maxIndex = m.end;
-// 			for (uint32_t cpgID = m.start; cpgID <= m.end; ++cpgID)
-// 			{
-// 				if (ref.cpgStartTable[cpgID].pos < minPos)
-// 				{
-// 					++minIndex;
-// 				} else if (ref.cpgStartTable[cpgID].pos > maxPos)
-// 				{
-// 					maxIndex = cpgID - 1;
-// 					break;
-// 				}
-// 			}
-//
-// 			if (isFwd)
-// 			{
-//
-// 				// compute alignment
-// 				lev.runDPFill<CompiFwd>(cmpFwd);
-// 				lev.backtrackDP<CompiFwd>(cmpFwd, alignment);
-// 				uint32_t refSeqPos = offset;
-// 				uint32_t readSeqPos = seq.size() - 1;
-// 				uint32_t alignPos = alignment.size() - 1;
-//
-// 				// go through all overlapping CpGs from back,
-// 				// move through read and reference according to alignment
-// 				// if position of CpG is hit, compare and count
-// 				for (uint32_t cpgID = maxIndex; cpgID >= minIndex; --cpgID)
-// 				{
-// 					// align until this CpG
-// 					while (ref.cpgStartTable[cpgID].pos < refSeqPos)
-// 					{
-// 						switch (alignment[alignPos--])
-// 						{
-// 							case (MATCHING):
-// 							case (MISMATCH):
-// 								--readSeqPos;
-// 								--refSeqPos;
-// 								break;
-// 							case (DELETION):
-// 								--refSeqPos;
-// 								break;
-// 							case(INSERTION):
-// 								--readSeqPos;
-// 								break;
-// 						}
-// 						// check if we have a CpG aligned to the reference CpG
-// 						if (seq[readSeqPos + 1] == 'G')
-// 						{
-// 							// check for methylated C
-// 							if (seq[readSeqPos] == 'C')
-// 							{
-// #ifdef _OPENMP
-// #pragma omp atomic
-// #endif
-// 								++methLevelsStart[cpgID].methFwd;
-// 							}
-// 							else if (seq[readSeqPos] == 'T')
-// 							{
-// #ifdef _OPENMP
-// #pragma omp atomic
-// #endif
-// 								++methLevelsStart[cpgID].unmethFwd;
-// 							}
-//
-// 						}
-// 					}
-// 				}
-//
-// 			} else {
-//
-// 				lev.runDPFillRev<CompiRev>(cmpRev);
-// 				lev.backtrackDPRev<CompiRev>(cmpRev, alignment);
-// 				uint32_t refSeqPos = offset;
-// 				uint32_t readSeqPos = seq.size() - 1;
-// 				uint32_t alignPos = alignment.size() - 1;
-//
-// 				// go through all overlapping CpGs from back,
-// 				// move through read and reference according to alignment
-// 				// if position of CpG is hit, compare and count
-// 				for (uint32_t cpgID = maxIndex; cpgID >= minIndex; --cpgID)
-// 				{
-// 					// align until this CpG
-// 					while (ref.cpgStartTable[cpgID].pos < refSeqPos)
-// 					{
-// 						switch (alignment[alignPos--])
-// 						{
-// 							case (MATCHING):
-// 							case (MISMATCH):
-// 								--readSeqPos;
-// 								--refSeqPos;
-// 								break;
-// 							case (DELETION):
-// 								--refSeqPos;
-// 								break;
-// 							case(INSERTION):
-// 								--readSeqPos;
-// 								break;
-// 						}
-// 						// check if we have a CpG aligned to the reference CpG
-// 						if (seq[readSeqPos] == 'G')
-// 						{
-// 							// check for methylated C (on reverse!)
-// 							if (seq[readSeqPos + 1] == 'C')
-// 							{
-// #ifdef _OPENMP
-// #pragma omp atomic
-// #endif
-// 								++methLevelsStart[cpgID].methRev;
-// 							}
-// 							else if (seq[readSeqPos] == 'T')
-// 							{
-// #ifdef _OPENMP
-// #pragma omp atomic
-// #endif
-// 								++methLevelsStart[cpgID].unmethRev;
-// 							}
-//
-// 						}
-// 					}
-// 				}
-// 			}
-//
-//
-// 		// not start CpG (normal)
-// 		} else {
-
 			// struct metaCpG& m = ref.metaCpGs[metaID];
 			metaWindow& m = ref.metaWindows[metaID];
 			uint8_t chrom = ref.cpgTable[m.startInd].chrom;
@@ -3521,25 +3186,9 @@ inline void ReadQueue::computeMethLvl(MATCH::match& mat, std::string& seq)
 #endif
 								++methLevelsSc[cpgID].unmethFwd;
 							}
-						// TODO
-// 						} else {
-//
-// #ifdef _OPENMP
-// #pragma omp critical
-// #endif
-// 							{
-// 							hasShift = true;
-// 							std::cerr << "WHAT on fwd err!?\t" << seq[readSeqPos] << " should match " << ref.fullSeq[chrom].data()[refSeqPos] << " for CpG " << ref.fullSeq[chrom].data()[ref.cpgTable[cpgID].pos + MyConst::READLEN - 2] <<  "\n";
-// 							std::cerr << "\tPos: " << readSeqPos << "\n";
-// 							std::cerr << "Sequence original/read:\n\t" << std::string(ref.fullSeq[chrom].data() + metaPos + offset - 100, 100) << "\n\t" << seq << "\n";
-// 							}
 						}
 
-					// }
 				}
-				// TODO
-				// if (hasShift)
-				// 	std::cerr << "\t" << al << "\n\n";
 
 			} else {
 
@@ -3621,33 +3270,351 @@ inline void ReadQueue::computeMethLvl(MATCH::match& mat, std::string& seq)
 #endif
 								++methLevelsSc[cpgID].unmethRev;
 							}
-						// TODO
-						// } else {
-                        //
-							// break;
-// #ifdef _OPENMP
-// #pragma omp critical
-// #endif
-// 							{
-// 							hasShift = true;
-// 							std::cerr << "WHAT on rev err!?\t" << seq[readSeqPos + 1] << "\n";
-// 							std::cerr << "\tPos: " << readSeqPos + 1 << "\n";
-// 							std::cerr << "Sequence original/read:\n\t" << std::string(ref.fullSeq[chrom].data() + metaPos + offset - 100, 100) << "\n\t" << seq << "\n\n";
-// 							}
 						}
 					// }
 				}
-// #ifdef _OPENMP
-// #pragma omp critical
-// #endif
-// 				{
-// 				// TODO
-// 				if (hasShift)
-// 					std::cerr << "\t" << al << "\n\n";
-// 				}
 			}
 		// }
 	}
+}
+
+
+inline void ReadQueue::computeMethLvlLocal(MATCH::match& mat, std::string& seq)
+{
+    uint8_t length = seq.length();
+    // retrieve matched metaId
+    bool isFwd = MATCH::isFwd(mat);
+    uint32_t metaID = MATCH::getMetaID(mat);
+    uint16_t offset = MATCH::getOffset(mat);
+    uint8_t errNum = MATCH::getErrNum(mat);
+    // if no cpg in window, do not carry out alignment
+    if (ref.metaWindows[metaID].startInd == MyConst::CPGDUMMY)
+    {
+        return;
+    }
+
+    // if no errors -> simple lookup of sequences
+    if (errNum == 0)
+    {
+
+            // struct metaCpG& m = ref.metaCpGs[metaID];
+            metaWindow& m = ref.metaWindows[metaID];
+            // uint8_t chrom = ref.cpgTable[m.start].chrom;
+            // uint32_t metaPos = ref.cpgTable[m.startInd].pos;
+            uint32_t metaPos = m.startPos;
+            const uint32_t minPos = metaPos + offset - (seq.size() - 1);
+            const uint32_t maxPos = metaPos + offset;
+            //const uint32_t minPos = metaPos + offset;
+            //const uint32_t maxPos = metaPos + offset + seq.size();
+            for (uint32_t cpgId = m.startInd; cpgId <= m.endInd; ++cpgId)
+            {
+                // check if CpG is too far downstream of read match
+                // i.e. no overlap
+                std::cout << ref.cpgTable[cpgId].pos << std::endl;
+                if (ref.cpgTable[cpgId].pos - 2 < minPos)
+                    continue;
+                // check if too far upstream
+                if (isFwd)
+                {
+                    if (ref.cpgTable[cpgId].pos - 2 > maxPos)
+                        break;
+                } else {
+                    if (ref.cpgTable[cpgId].pos - 1 > maxPos)
+                        break;
+                }
+
+
+
+                // position of CpG in read
+                //uint32_t readCpGPos = ref.cpgTable[cpgId].pos + length - 2 - (metaPos + offset - (seq.size() - 1));
+                uint32_t readCpGPos = ref.cpgTable[cpgId].pos - metaPos - offset + length;
+                std::cout << ref.cpgTable[cpgId].pos << "|" << readCpGPos << std::endl;
+                if (isFwd)
+                {
+                    if (seq[readCpGPos] == 'T')
+                    {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+                        ++methLevels[cpgId].unmethFwd;
+                        if (isSC)
+                        {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+                            ++methLevelsSc[cpgId].unmethFwd;
+                        }
+                    }
+                    else if (seq[readCpGPos] == 'C')
+                    {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+                        ++methLevels[cpgId].methFwd;
+                        if (isSC)
+                        {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+                            ++methLevelsSc[cpgId].methFwd;
+                        }
+
+                    }
+
+                } else {
+
+                    if (seq[seq.size() - readCpGPos - 2] == 'T')
+                    {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+                        ++methLevels[cpgId].unmethRev;
+                        if (isSC)
+                        {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+                            ++methLevelsSc[cpgId].unmethRev;
+                        }
+                    }
+                    else  if (seq[seq.size() - readCpGPos - 2] == 'C')
+                    {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+                        ++methLevels[cpgId].methRev;
+                        if (isSC)
+                        {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+                            ++methLevelsSc[cpgId].methRev;
+                        }
+
+                    }
+                }
+            }
+        // }
+
+    // if match was errornous
+    } else {
+            // struct metaCpG& m = ref.metaCpGs[metaID];
+            metaWindow& m = ref.metaWindows[metaID];
+            uint8_t chrom = ref.cpgTable[m.startInd].chrom;
+            // uint32_t metaPos = ref.cpgTable[m.startInd].pos;
+            uint32_t metaPos = m.startPos;
+
+            const char* refSeq = ref.fullSeq[chrom].data() + metaPos + offset;
+
+            // init levenshtein DP algo
+            LevenshtDP<uint16_t, MyConst::MISCOUNT + MyConst::ADDMIS> lev(seq, refSeq);
+            std::vector<ERROR_T> alignment;
+
+            // minimum position for overlap
+            const uint32_t minPos = metaPos + offset - (seq.size() - 1);
+            const uint32_t maxPos = metaPos + offset;
+            // positions of first/ last overlapping CpG
+            int32_t minIndex = m.startInd;
+            int32_t maxIndex = m.endInd;
+            for (int32_t cpgID = m.startInd; cpgID <= m.endInd; ++cpgID)
+            {
+                if (ref.cpgTable[cpgID].pos + length - 2 < minPos)
+                {
+                    ++minIndex;
+
+                } else if (isFwd)
+                {
+                    if (ref.cpgTable[cpgID].pos + length - 2 > maxPos)
+                    {
+                        maxIndex = cpgID - 1;
+                        break;
+                    }
+                } else {
+                    if (ref.cpgTable[cpgID].pos + length - 2 > maxPos)
+                    {
+                        maxIndex = cpgID - 1;
+                        break;
+                    }
+                }
+            }
+
+            if (isFwd)
+            {
+
+                // compute alignment
+                lev.runDPFill<CompiFwd>(cmpFwd);
+                lev.backtrackDP<CompiFwd>(cmpFwd, alignment);
+                // current position in read and reference
+                uint32_t refSeqPos = metaPos + offset;
+                int32_t readSeqPos = seq.size() - 1;
+                // current position in alignment (note that we align from right to left)
+                int32_t alignPos = alignment.size() - 1;
+
+                // go through all overlapping CpGs from back,
+                // move through read and reference according to alignment
+                // if position of CpG is hit, compare and count
+                // TODO
+                // std::string al (alignment.size(),'%');
+                // bool hasShift = false;
+                for (int32_t cpgID = maxIndex; cpgID >= minIndex; --cpgID)
+                {
+                    // align until this CpG
+                    while (ref.cpgTable[cpgID].pos + length - 2 < refSeqPos && alignPos >= 0)
+                    {
+                        switch (alignment[alignPos])
+                        {
+                            case (MATCHING):
+                                // TODO delete this
+                                // al[alignPos] = '=';
+                                // --readSeqPos;
+                                // --refSeqPos;
+                                // break;
+                            case (MISMATCH):
+                                // TODO
+                                // al[alignPos] = '!';
+                                --readSeqPos;
+                                --refSeqPos;
+                                break;
+                            case (DELETION):
+                                // al[alignPos] = '-';
+                                --refSeqPos;
+                                break;
+                            case(INSERTION):
+                                // al[alignPos] = '+';
+                                --readSeqPos;
+                                break;
+                        }
+                        if (readSeqPos < 0)
+                            break;
+                        if (readSeqPos == seq.size() - 1)
+                            continue;
+                        --alignPos;
+                    }
+                    if (readSeqPos < 0)
+                    {
+                        break;
+                    }
+                    // check if we have a CpG aligned to the reference CpG
+                    // if (seq[readSeqPos + 1] == 'G')
+                    // {
+                        // check for unmethylated C
+                        if (seq[readSeqPos] == 'C')
+                        {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+                            ++methLevels[cpgID].methFwd;
+                            if (isSC)
+                            {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+                                ++methLevelsSc[cpgID].methFwd;
+                            }
+                        }
+                        else if (seq[readSeqPos] == 'T')
+                        {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+                            ++methLevels[cpgID].unmethFwd;
+                            if (isSC)
+                            {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+                                ++methLevelsSc[cpgID].unmethFwd;
+                            }
+                        }
+
+                }
+
+            } else {
+
+                lev.runDPFillRev<CompiRev>(cmpRev);
+                lev.backtrackDPRev<CompiRev>(cmpRev, alignment);
+                uint32_t refSeqPos = metaPos + offset;
+                int32_t readSeqPos = seq.size() - 1;
+                int32_t alignPos = alignment.size() - 1;
+                std::reverse(seq.begin(),seq.end());
+
+                // go through all overlapping CpGs from back,
+                // move through read and reference according to alignment
+                // if position of CpG is hit, compare and count
+                // TODO
+                // std::string al (alignment.size(),'%');
+                // bool hasShift = false;
+                for (int32_t cpgID = maxIndex; cpgID >= minIndex; --cpgID)
+                {
+                    // align until this CpG
+                    while (ref.cpgTable[cpgID].pos + length - 2 < refSeqPos && alignPos >= 0)
+                    {
+                        switch (alignment[alignPos])
+                        {
+                            case (MATCHING):
+                                // TODO delete this
+                                // al[alignPos] = '=';
+                                // --readSeqPos;
+                                // --refSeqPos;
+                                // break;
+                            case (MISMATCH):
+                                // TODO
+                                // al[alignPos] = '!';
+                                --readSeqPos;
+                                --refSeqPos;
+                                break;
+                            case (DELETION):
+                                // al[alignPos] = '-';
+                                --refSeqPos;
+                                break;
+                            case(INSERTION):
+                                // al[alignPos] = '+';
+                                --readSeqPos;
+                                break;
+                        }
+                        if (readSeqPos < 0)
+                            break;
+                        if (readSeqPos == seq.size() - 1)
+                            continue;
+                        --alignPos;
+                    }
+                    // check if we have a CpG aligned to the reference CpG
+                    // if (seq[readSeqPos] == 'G')
+                    // {
+                        // check for unmethylated C
+                        if (seq[readSeqPos + 1] == 'C')
+                        {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+                            ++methLevels[cpgID].methRev;
+                            if (isSC)
+                            {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+                                ++methLevelsSc[cpgID].methRev;
+                            }
+                        }
+                        else if (seq[readSeqPos + 1] == 'T')
+                        {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+                            ++methLevels[cpgID].unmethRev;
+                            if (isSC)
+                            {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+                                ++methLevelsSc[cpgID].unmethRev;
+                            }
+                        }
+                    // }
+                }
+            }
+        // }
+    }
 }
 
 

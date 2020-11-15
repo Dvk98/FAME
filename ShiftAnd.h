@@ -71,7 +71,7 @@ class ShiftAnd
         inline void querySeq(std::vector<char>::iterator start, std::vector<char>::iterator end, std::vector<uint64_t>& matches, std::vector<uint8_t>& errors);
         inline void queryRevSeq(std::vector<char>::iterator start, std::vector<char>::iterator end, std::vector<uint64_t>& matches, std::vector<uint8_t>& errors);
 
-        inline void queryLocal(std::vector<uint64_t>& matches, std::vector<uint8_t>& errors, std::vector<uint8_t>& length, int minLength, size_t& numCompLets, auto start, auto it);
+        inline void queryLocal(std::vector<uint64_t>& matches, std::vector<uint8_t>& errors, std::vector<uint8_t>& length, int minLength, size_t& numCompLets, auto start, auto end, auto it, bool fwd);
         inline void querySeqLocal(std::vector<char>::iterator start, std::vector<char>::iterator end, std::vector<uint64_t>& matches, std::vector<uint8_t>& errors, std::vector<uint8_t>& length,  int minLength);
         inline void queryRevSeqLocal(std::vector<char>::iterator start, std::vector<char>::iterator end, std::vector<uint64_t>& matches, std::vector<uint8_t>& errors, std::vector<uint8_t>& length, int minLength);
 
@@ -195,7 +195,7 @@ inline void ShiftAnd<E>::querySeq(std::vector<char>::iterator start, std::vector
 }
 
 template<size_t E>
-inline void ShiftAnd<E>::queryLocal(std::vector<uint64_t>& matches, std::vector<uint8_t>& errors, std::vector<uint8_t>& length, int minLength, size_t& numCompLets, auto start, auto it) {
+inline void ShiftAnd<E>::queryLocal(std::vector<uint64_t>& matches, std::vector<uint8_t>& errors, std::vector<uint8_t>& length, int minLength, size_t& numCompLets, auto start, auto end, auto it, bool fwd) {
     ++numCompLets;
 
     if(numCompLets < minLength) {
@@ -228,9 +228,17 @@ inline void ShiftAnd<E>::queryLocal(std::vector<uint64_t>& matches, std::vector<
     }
 
     if(bestMatchLength >= minLength) {
-        matches.push_back(it-start + 1 - bestMatchLength);
-        errors.push_back(errNum);
-        length.push_back(bestMatchLength);
+        if(fwd) {
+            //matches.push_back(it-start + 1 - bestMatchLength);
+            matches.push_back(it-start);
+            errors.push_back(errNum);
+            length.push_back(bestMatchLength);
+        }
+        else {
+            matches.push_back(it - end + bestMatchLength - 2);
+            errors.push_back(errNum);
+            length.push_back(bestMatchLength);
+        }
     }
 }
 
@@ -253,7 +261,7 @@ inline void ShiftAnd<E>::querySeqLocal(std::vector<char>::iterator start, std::v
         }
         queryLetter(*it);
 
-        queryLocal(matches, errors, length, minLength, numCompLets, start, it);
+        queryLocal(matches, errors, length, minLength, numCompLets, start, end, it, true);
 
     }
 }
@@ -363,7 +371,7 @@ inline void ShiftAnd<E>::queryRevSeqLocal(std::vector<char>::iterator start, std
                 exit(1);
         }
 
-        queryLocal(matches, errors, length, minLength, numCompLets, start, it);
+        queryLocal(matches, errors, length, minLength, numCompLets, start, end, it, false);
     }
 }
 

@@ -164,7 +164,7 @@ class ReadQueue
 		inline void saQuerySeedSetRefFirst(ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS>& sa, std::vector<MATCH::match>& mats, const uint16_t& qThreshold);
 		inline void saQuerySeedSetRefSecond(ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS>& sa, std::vector<MATCH::match>& mats, const uint16_t& qThreshold);
 
-		inline int saQuerySeedSetRefLocal(ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS>& sa, MATCH::match& mat, uint8_t length, uint16_t& qThreshold, uint8_t minLength);
+        inline int saQuerySeedSetRefLocal(ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS>& sa, MATCH::match& mat, uint8_t& length, uint16_t& qThreshold, uint8_t& minLength);
         // count all metaCpG occurences of k-mers appearing in seq
         //
         // ARGUMENTS:
@@ -257,6 +257,7 @@ class ReadQueue
         // MODIFICATIONS:
         //              will modify internal methLevel counters
         inline void computeMethLvl(MATCH::match& mat, std::string& seq);
+        inline void computeMethLvlLocal(MATCH::match& mat, std::string& seq);
 
         // input stream of file given as path to Ctor
         std::ifstream file;
