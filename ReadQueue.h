@@ -97,13 +97,13 @@ class ReadQueue
 		//          getStranded	flag for initial stranding counters
         // Make full match using bit shift trick
         // Align match using banded levenshtein alignment to update methylation counts
-        bool matchReads(const unsigned int& procReads, uint64_t& succMatch, uint64_t& nonUniqueMatch, uint64_t& unSuccMatch, const bool getStranded);
+        bool matchReads(const unsigned int& procReads, uint64_t& succMatch, uint64_t& nonUniqueMatch, uint64_t& unSuccMatch, uint64_t& partialSuccMatch, uint64_t& partialNonUniqueMatch, uint64_t& partialUnSuccMatch,  const bool getStranded);
         bool matchReadsLocal(const unsigned int& procReads, uint64_t& succMatch, uint64_t& nonUniqueMatch, uint64_t& unSuccMatch, const bool getStranded);
         bool matchPairedReads(const unsigned int& procReads, uint64_t& succMatch, uint64_t& nonUniqueMatch, uint64_t& unSuccMatch, uint64_t& succPairedMatch, uint64_t& tooShortCountMatch, const bool getStranded);
         bool matchPairedReadsLocal(const unsigned int& procReads, uint64_t& succMatch, uint64_t& nonUniqueMatch, uint64_t& unSuccMatch, uint64_t& succPairedMatch, uint64_t& tooShortCountMatch, const bool getStranded);
 
         //bool LocalMatching(Read& r, const size_t readSize, std::string revSeq, const bool getStranded);
-        bool matchLocalAlign(Read& r, std::string& revSeq, uint16_t qThreshold, int& succQueryFwd, int& succQueryRev, uint64_t& succMatchT, uint64_t& nonUniqueMatchT, uint64_t& unSuccMatchT);
+        bool matchLocalAlign(Read& r, std::string& revSeq, uint16_t qThreshold, int& succQueryFwd, int& succQueryRev, uint64_t& succMatchT, uint64_t& nonUniqueMatchT, uint64_t& unSuccMatchT, uint64_t& succMatchFirstPartT, uint64_t& succMatchSecondPartT, uint64_t& nonUniqueMatchFirstPartT, uint64_t& nonUniqueMatchSecondPartT, uint64_t& unSuccMatchFirstPartT, uint64_t& unSuccMatchSecondPartT);
 		// Match batch of single cell reads given by file
 		bool matchSCBatch(const char* scFile, const std::string scId, const bool isGZ);
 		bool matchSCBatchPaired(const char* scFile1, const char* scFile2, const std::string scId, const bool isGZ);
@@ -389,6 +389,13 @@ class ReadQueue
         std::array<uint64_t, CORENUM> noMatchStats;
         std::array<uint64_t, CORENUM> matchPairedStats;
         std::array<uint64_t, CORENUM> tooShortCounts;
+
+        std::array<uint64_t, CORENUM> matchStatsFirstPart;
+        std::array<uint64_t, CORENUM> matchStatsSecondPart;
+        std::array<uint64_t, CORENUM> nonUniqueStatsFirstPart;
+        std::array<uint64_t, CORENUM> nonUniqueStatsSecondPart;
+        std::array<uint64_t, CORENUM> noMatchStatsFirstPart;
+        std::array<uint64_t, CORENUM> noMatchStatsSecondPart;
 
 		bool bothStrandsFlag;
 		// counter for read 1 matches to fwd strand

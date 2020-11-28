@@ -335,7 +335,7 @@ void ReadQueue::decideStrand()
 
 
 
-bool ReadQueue::matchReads(const unsigned int& procReads, uint64_t& succMatch, uint64_t& nonUniqueMatch, uint64_t& unSuccMatch, const bool getStranded)
+bool ReadQueue::matchReads(const unsigned int& procReads, uint64_t& succMatch, uint64_t& nonUniqueMatch, uint64_t& unSuccMatch, uint64_t& partialSuccMatch, uint64_t& partialNonUniqueMatch, uint64_t& partialUnSuccMatch, const bool getStranded)
 {
 
     // reset all counters
@@ -344,6 +344,12 @@ bool ReadQueue::matchReads(const unsigned int& procReads, uint64_t& succMatch, u
         matchStats[i] = 0;
         nonUniqueStats[i] = 0;
         noMatchStats[i] = 0;
+        matchStatsFirstPart[i] = 0;
+        matchStatsSecondPart[i] = 0;
+        nonUniqueStatsFirstPart[i] = 0;
+        nonUniqueStatsSecondPart[i] = 0;
+        noMatchStatsFirstPart[i] = 0;
+        noMatchStatsSecondPart[i] = 0;
     }
 
 #ifdef _OPENMP
@@ -357,6 +363,12 @@ bool ReadQueue::matchReads(const unsigned int& procReads, uint64_t& succMatch, u
         uint64_t& succMatchT = matchStats[threadnum];
         uint64_t& nonUniqueMatchT = nonUniqueStats[threadnum];
         uint64_t& unSuccMatchT = noMatchStats[threadnum];
+        uint64_t& succMatchFirstPartT = matchStatsFirstPart[threadnum];
+        uint64_t& succMatchSecondPartT = matchStatsSecondPart[threadnum];
+        uint64_t& nonUniqueMatchFirstPartT = nonUniqueStatsFirstPart[threadnum];
+        uint64_t& nonUniqueMatchSecondPartT = nonUniqueStatsSecondPart[threadnum];
+        uint64_t& unSuccMatchFirstPartT = noMatchStatsFirstPart[threadnum];
+        uint64_t& unSuccMatchSecondPartT = noMatchStatsSecondPart[threadnum];
         Read& r = readBuffer[i];
 
         const size_t readSize = r.seq.size();
@@ -385,7 +397,8 @@ bool ReadQueue::matchReads(const unsigned int& procReads, uint64_t& succMatch, u
 
             switch (r.seq[pos])
             {
-                case 'A':
+                case 'A': //CATG
+                          //GTAC
 
                     revSeq[revPos] = 'T';
                     break;
@@ -574,7 +587,7 @@ bool ReadQueue::matchReads(const unsigned int& procReads, uint64_t& succMatch, u
         // no match found at all
         } else {
             if(localAlign) {
-                matchLocalAlign(r, revSeq, qThreshold, succQueryFwd, succQueryRev, succMatchT, nonUniqueMatchT, unSuccMatchT);
+                matchLocalAlign(r, revSeq, qThreshold, succQueryFwd, succQueryRev, succMatchT, nonUniqueMatchT, unSuccMatchT, succMatchFirstPartT, succMatchSecondPartT, nonUniqueMatchFirstPartT, nonUniqueMatchSecondPartT, unSuccMatchFirstPartT, unSuccMatchSecondPartT);
             }
             else {
 				r.isInvalid = true;
@@ -595,11 +608,17 @@ bool ReadQueue::matchReads(const unsigned int& procReads, uint64_t& succMatch, u
         succMatch += matchStats[i];
         nonUniqueMatch += nonUniqueStats[i];
         unSuccMatch += noMatchStats[i];
+        partialSuccMatch += matchStatsFirstPart[i];
+        partialSuccMatch += matchStatsSecondPart[i];
+        partialUnSuccMatch += noMatchStatsFirstPart[i];
+        partialUnSuccMatch += noMatchStatsSecondPart[i];
+        partialNonUniqueMatch += nonUniqueStatsFirstPart[i];
+        partialNonUniqueMatch += nonUniqueStatsSecondPart[i];
     }
     return true;
 }
 
-bool ReadQueue::matchLocalAlign(Read& r, std::string& revSeq, uint16_t qThreshold, int& succQueryFwd, int& succQueryRev, uint64_t& succMatchT, uint64_t& nonUniqueMatchT, uint64_t& unSuccMatchT) {
+bool ReadQueue::matchLocalAlign(Read& r, std::string& revSeq, uint16_t qThreshold, int& succQueryFwd, int& succQueryRev, uint64_t& succMatchT, uint64_t& nonUniqueMatchT, uint64_t& unSuccMatchT, uint64_t& succMatchFirstPartT, uint64_t& succMatchSecondPartT, uint64_t& nonUniqueMatchFirstPartT, uint64_t& nonUniqueMatchSecondPartT, uint64_t& unSuccMatchFirstPartT, uint64_t& unSuccMatchSecondPartT) {
     //std::cout << "Read could not be matched. Trying local Alignment" << std::endl;
     uint8_t minLength = 30;
     int success = 0;
@@ -607,6 +626,7 @@ bool ReadQueue::matchLocalAlign(Read& r, std::string& revSeq, uint16_t qThreshol
     uint8_t firstLength = 0;
 
     int succQueryFwdFirst = 0;
+    int succQueryFwdFirstSecond = 0;
     MATCH::match matchFwdFirst = 0;
     MATCH::match matchFwdFirstSecond = 0;
     uint8_t fwdFirstLength = 0;
@@ -616,68 +636,83 @@ bool ReadQueue::matchLocalAlign(Read& r, std::string& revSeq, uint16_t qThreshol
 
     if(succQueryFwdFirst) {
         int succQueryFwdSecond, succQueryRevSecond = 0;
-
+        qThreshold = 2;
         MATCH::match matchFwdSecond = 0;
         std::string fwdSubstring = r.seq.substr(fwdFirstLength);
         ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saFwdSecond(fwdSubstring, lmap);
+        getSeedRefs(fwdSubstring, fwdSubstring.size(), qThreshold);
         succQueryFwdSecond = saQuerySeedSetRef(saFwdSecond, matchFwdSecond, qThreshold);
 
         MATCH::match matchRevSecond = 0;
         std::string revSubstring = revSeq.substr(fwdFirstLength); // Maybe change here
+        getSeedRefs(revSubstring, revSubstring.size(), qThreshold);
+        //std::string revSubstring = revSeq.substr(0, r.seq.length() - fwdFirstLength);
         ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saRevSecond(revSubstring, lmap);
         succQueryRevSecond = saQuerySeedSetRef(saRevSecond, matchRevSecond, qThreshold);
 
         if(succQueryFwdSecond && succQueryRevSecond) {
-            ++nonUniqueMatchT;
-            r.isInvalid = true;
-            return false;
-            succQueryFwd = -1;
+            //++nonUniqueMatchT;
+            //r.isInvalid = true;
+            //return false;
+            //succQueryFwd = -1;
+            succQueryFwdFirstSecond = -1;
         }
         else if(succQueryFwdSecond) {
             matchFwdFirstSecond = matchFwdSecond;
+            succQueryFwdFirstSecond = 1;
         }
         else if(succQueryRevSecond) {
             matchFwdFirstSecond = matchRevSecond;
+            succQueryFwdFirstSecond = 1;
         }
+
         else {
-            succQueryFwdFirst = 0;
+            succQueryFwdFirstSecond = 0;
         }
     }
-
+    qThreshold = 5;
     int succQueryRevFirst = 0;
+    int succQueryRevFirstSecond = 0;
     MATCH::match matchRevFirst = 0;
     MATCH::match matchRevFirstSecond = 0;
     uint8_t revFirstLength = 0;
     ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saRevFirst(revSeq, lmap);
+    getSeedRefs(revSeq, revSeq.size(), qThreshold);
     succQueryRevFirst = saQuerySeedSetRefLocal(saRevFirst, matchRevFirst, revFirstLength, qThreshold, minLength);
 
     if(succQueryRevFirst) {
         int succQueryFwdSecond, succQueryRevSecond = 0;
-
+        qThreshold = 2;
         MATCH::match matchFwdSecond = 0;
         std::string fwdSubstring = r.seq.substr(revFirstLength);
+        getSeedRefs(fwdSubstring, fwdSubstring.size(), qThreshold);
+        //std::string fwdSubstring = r.seq.substr(0, r.seq.length() - revFirstLength);
         ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saFwdSecond(fwdSubstring, lmap);
         succQueryRevSecond = saQuerySeedSetRef(saFwdSecond, matchFwdSecond, qThreshold);
 
         MATCH::match matchRevSecond = 0;
         std::string revSubstring = revSeq.substr(revFirstLength);
+        getSeedRefs(revSubstring, revSubstring.size(), qThreshold);
         ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> saRevSecond(revSubstring, lmap);
         succQueryRevSecond = saQuerySeedSetRef(saRevSecond, matchRevSecond, qThreshold);
-
+        qThreshold = 5;
         if(succQueryFwdSecond && succQueryRevSecond) {
-            ++nonUniqueMatchT;
+            /*++nonUniqueMatchT;
             r.isInvalid = true;
             return false;
-            succQueryRev = -1;
+            succQueryRev = -1;*/
+            succQueryRevFirstSecond = -1;
         }
         else if(succQueryFwdSecond) {
             matchRevFirstSecond = matchFwdSecond;
+            succQueryRevFirstSecond = 1;
         }
         else if(succQueryRevSecond) {
             matchRevFirstSecond = matchRevSecond;
+            succQueryRevFirstSecond = 1;
         }
         else {
-            succQueryRevFirst = 0;
+            succQueryRevFirstSecond = 0;
         }
 
     }
@@ -685,48 +720,95 @@ bool ReadQueue::matchLocalAlign(Read& r, std::string& revSeq, uint16_t qThreshol
     if(succQueryFwdFirst && !succQueryRevFirst) {
         firstMatch = matchFwdFirst;
         firstLength = fwdFirstLength;
-        secondMatch = matchFwdFirstSecond;
         success = 1;
+        if(succQueryFwdFirstSecond) {
+            secondMatch = matchFwdFirstSecond;
+            success = 2;
+        }
+        else if(succQueryFwdFirstSecond == 0) {
+            ++unSuccMatchSecondPartT;
+        }
+        else if(succQueryFwdFirstSecond == -1) {
+            ++nonUniqueMatchSecondPartT;
+        }
+
     }
     else if(!succQueryFwdFirst && succQueryRevFirst) {
         firstMatch = matchRevFirst;
         firstLength = revFirstLength;
-        secondMatch = matchRevFirstSecond;
         success = 1;
+        if(succQueryRevFirstSecond) {
+            secondMatch = matchRevFirstSecond;
+            success = 2;
+        }
+        else if(succQueryRevFirstSecond == 0) {
+            ++unSuccMatchSecondPartT;
+        }
+        else if(succQueryRevFirstSecond == -1) {
+            ++nonUniqueMatchSecondPartT;
+        }
     }
     else if(succQueryFwdFirst && succQueryRevFirst) {
         if(fwdFirstLength > revFirstLength) {
             firstMatch = matchFwdFirst;
             firstLength = fwdFirstLength;
-            secondMatch = matchFwdFirstSecond;
             success = 1;
+            if(succQueryFwdFirstSecond) {
+                secondMatch = matchFwdFirstSecond;
+                success = 2;
+            }
+            else if(!succQueryFwdFirstSecond) {
+                ++unSuccMatchSecondPartT;
+            }
+            else if(succQueryFwdFirstSecond == -1) {
+                ++nonUniqueMatchSecondPartT;
+            }
         }
         else if(fwdFirstLength < revFirstLength) {
             firstMatch = matchRevFirst;
             firstLength = revFirstLength;
-            secondMatch = matchRevFirstSecond;
             success = 1;
+            if(succQueryRevFirstSecond) {
+                secondMatch = matchRevFirstSecond;
+                success = 2;
+            }
+            else if(!succQueryRevFirstSecond) {
+                ++unSuccMatchSecondPartT;
+            }
+            else if(succQueryRevFirstSecond == -1) {
+                ++nonUniqueMatchSecondPartT;
+            }
         }
         else {
             success = -1;
+            ++nonUniqueMatchFirstPartT;
         }
     }
     else if(succQueryFwdFirst == 0 && succQueryRevFirst == 0) {
         success = 0;
+        ++unSuccMatchFirstPartT;
+
     }
     else {
         success = -1;
     }
 
-    if(success) {
+    if(success > 0) {
         std::string firstMatchSeq = r.seq.substr(0, firstLength);
-        std::string secondMatchSeq = r.seq.substr(firstLength, r.seq.size());
-
-        //r.mat1 =
-
         computeMethLvlLocal(firstMatch, firstMatchSeq);
-        computeMethLvlLocal(secondMatch, secondMatchSeq);
-        ++succMatchT;
+        ++succMatchFirstPartT;
+
+        if(success == 2) {
+            std::string secondMatchSeq = r.seq.substr(firstLength, r.seq.size());
+            computeMethLvlLocal(secondMatch, secondMatchSeq);
+            ++succMatchSecondPartT;
+            ++succMatchT;
+        }
+        else {
+
+        }
+
+        //++succMatchT;
         return true;
     }
     else if(success == 0)
@@ -1111,6 +1193,9 @@ bool ReadQueue::matchSCBatch(const char* scFile, const std::string scId, const b
     uint64_t succMatch = 0;
     uint64_t nonUniqueMatch = 0;
     uint64_t unSuccMatch = 0;
+    uint64_t partialSuccMatch = 0;
+    uint64_t partialNonUniqueMatch = 0;
+    uint64_t partialUnSuccMatch = 0;
 
     if (isGZ)
     {
@@ -1140,7 +1225,7 @@ bool ReadQueue::matchSCBatch(const char* scFile, const std::string scId, const b
 	{
 		++i;
 		isGZ ? parseChunkGZ(readCounter) : parseChunk(readCounter);
-		matchReads(readCounter, succMatch, nonUniqueMatch, unSuccMatch, true);
+        matchReads(readCounter, succMatch, nonUniqueMatch, unSuccMatch, partialSuccMatch, partialNonUniqueMatch, partialUnSuccMatch, true);
 		decideStrand();
         std::cout << "Processed " << MyConst::CHUNKSIZE * (i) << " paired reads\n";
 	}
@@ -1148,16 +1233,19 @@ bool ReadQueue::matchSCBatch(const char* scFile, const std::string scId, const b
     while(isGZ ? parseChunkGZ(readCounter) : parseChunk(readCounter))
     {
         ++i;
-        matchReads(readCounter, succMatch, nonUniqueMatch, unSuccMatch, false);
+        matchReads(readCounter, succMatch, nonUniqueMatch, unSuccMatch, partialSuccMatch, partialNonUniqueMatch, partialUnSuccMatch, false);
         std::cout << "Processed " << MyConst::CHUNKSIZE * (i) << " paired reads\n";
     }
     // match remaining reads
-    matchReads(readCounter, succMatch, nonUniqueMatch, unSuccMatch, false);
+    matchReads(readCounter, succMatch, nonUniqueMatch, unSuccMatch, partialSuccMatch, partialNonUniqueMatch, partialUnSuccMatch, false);
 	std::cout << "Processed " << MyConst::CHUNKSIZE * (i+1) << " paired reads\n";
 
 	std::cout << "Finished " << std::string(scFile) << "\n\n";
 	std::cout << "\nOverall number of reads for cell " << scId << ": " << MyConst::CHUNKSIZE * i + readCounter;
     std::cout << "\tOverall successfully matched: " << succMatch << "\n\tUnsuccessfully matched: " << unSuccMatch << "\n\tNonunique matches: " << nonUniqueMatch << "\n";
+    if(localAlign) {
+        std::cout << "\n Overall partial matched: " << partialSuccMatch << "\n\tPartial unsuccessfully matched: " << partialUnSuccMatch << "\n\tPartial nonunique matches: " << partialNonUniqueMatch << "\n";
+    }
 	std::cout << "\n\nAlignment rate: " << (double)succMatch/(double)(2*(MyConst::CHUNKSIZE * i + readCounter)) << "\n\n\n";
 
     if (isGZ)
@@ -3302,7 +3390,7 @@ inline void ReadQueue::computeMethLvlLocal(MATCH::match& mat, std::string& seq)
             // uint8_t chrom = ref.cpgTable[m.start].chrom;
             // uint32_t metaPos = ref.cpgTable[m.startInd].pos;
             uint32_t metaPos = m.startPos;
-            const uint32_t minPos = metaPos + offset - (seq.size() - 1);
+            const uint32_t minPos = metaPos + offset - (length - 1);
             const uint32_t maxPos = metaPos + offset;
             //const uint32_t minPos = metaPos + offset;
             //const uint32_t maxPos = metaPos + offset + seq.size();
@@ -3310,25 +3398,27 @@ inline void ReadQueue::computeMethLvlLocal(MATCH::match& mat, std::string& seq)
             {
                 // check if CpG is too far downstream of read match
                 // i.e. no overlap
-                std::cout << ref.cpgTable[cpgId].pos << std::endl;
-                if (ref.cpgTable[cpgId].pos - 2 < minPos)
+                //std::cout << ref.cpgTable[cpgId].pos << std::endl;
+                if (ref.cpgTable[cpgId].pos + MyConst::READLEN - 2 < minPos)
                     continue;
                 // check if too far upstream
                 if (isFwd)
                 {
-                    if (ref.cpgTable[cpgId].pos - 2 > maxPos)
+                    if (ref.cpgTable[cpgId].pos + MyConst::READLEN - 2 > maxPos)
                         break;
                 } else {
-                    if (ref.cpgTable[cpgId].pos - 1 > maxPos)
+                    if (ref.cpgTable[cpgId].pos + MyConst::READLEN - 1 > maxPos)
                         break;
                 }
 
 
 
                 // position of CpG in read
-                //uint32_t readCpGPos = ref.cpgTable[cpgId].pos + length - 2 - (metaPos + offset - (seq.size() - 1));
-                uint32_t readCpGPos = ref.cpgTable[cpgId].pos - metaPos - offset + length;
-                std::cout << ref.cpgTable[cpgId].pos << "|" << readCpGPos << std::endl;
+                //uint32_t readCpGPos = ref.cpgTable[cpgId].pos + MyConst::READLEN - 2 - (metaPos + offset - (seq.size() - 1));
+                //uint32_t readCpGPos = ref.cpgTable[cpgId].pos + length - 2 - metaPos - offset + (seq.size() - 1));
+                uint32_t readCpGPos = ref.cpgTable[cpgId].pos + MyConst::READLEN - 2 - minPos;
+                //std::cout << ref.cpgTable[cpgId].pos << "|" << readCpGPos << std::endl;
+                //std::cout << seq[readCpGPos] << std::endl;
                 if (isFwd)
                 {
                     if (seq[readCpGPos] == 'T')

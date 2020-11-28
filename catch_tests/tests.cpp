@@ -41,10 +41,10 @@ TEST_CASE("Local ShiftAnd_Test", "[localShiftAnd]") {
     REQUIRE(length0[3] == 7);
 
     REQUIRE(matchings0.size() == 4);
-    REQUIRE(matchings0[0] == 0);
-    REQUIRE(matchings0[1] == 0);
-    REQUIRE(matchings0[2] == 0);
-    REQUIRE(matchings0[3] == 0);
+    REQUIRE(matchings0[0] - (length0[0] - 1) == 0);
+    REQUIRE(matchings0[1] - (length0[1] - 1) == 0);
+    REQUIRE(matchings0[2] - (length0[2] - 1) == 0);
+    REQUIRE(matchings0[3] - (length0[3] - 1) == 0);
 
     REQUIRE(errors0.size() == 4);
     REQUIRE(errors0[0] == 0);
@@ -71,9 +71,9 @@ TEST_CASE("Local ShiftAnd_Test with splitted matches", "[localShiftAnd]") {
     REQUIRE(length0[2] == 6);
 
     REQUIRE(matchings0.size() == 3);
-    REQUIRE(matchings0[0] == 0);
-    REQUIRE(matchings0[1] == 0);
-    REQUIRE(matchings0[2] == 8);
+    REQUIRE(matchings0[0] - (length0[0] - 1) == 0);
+    REQUIRE(matchings0[1] - (length0[1] - 1) == 0);
+    REQUIRE(matchings0[2] - (length0[2] - 1) == 8);
 
     REQUIRE(errors0.size() == 3);
     REQUIRE(errors0[0] == 0);
@@ -84,14 +84,14 @@ TEST_CASE("Local ShiftAnd_Test with splitted matches", "[localShiftAnd]") {
 TEST_CASE("Local ShiftAnd_Test_Reverse", "[localShiftAnd]") {
     std::array<uint8_t, 16> lmap = Setup();
     std::string read   = "TTTTTTTT";
-    std::string window = "AAAAAAAT";
+    std::string window = "TAAAAAAA"; //AAAAAAAT -> TTTTTTTA -> ATTTTTTT
     std::vector<char> t (window.begin(), window.end());
 
     ShiftAnd<0> sa0(read, lmap);
     std::vector<uint64_t> matchings0;
     std::vector<uint8_t> errors0;
     std::vector<uint8_t> length0;
-    sa0.queryRevSeqLocal(t.begin(), t.end(), matchings0, errors0, length0, 4);
+    sa0.queryRevSeqLocal(t.end() - 1, t.begin() - 1, matchings0, errors0, length0, 4);
 
     REQUIRE(length0.size() == 4);
     REQUIRE(length0[0] == 4);
@@ -100,10 +100,10 @@ TEST_CASE("Local ShiftAnd_Test_Reverse", "[localShiftAnd]") {
     REQUIRE(length0[3] == 7);
 
     REQUIRE(matchings0.size() == 4);
-    REQUIRE(matchings0[0] == 0);
-    REQUIRE(matchings0[1] == 0);
-    REQUIRE(matchings0[2] == 0);
-    REQUIRE(matchings0[3] == 0);
+    REQUIRE(matchings0[0] == 7);
+    REQUIRE(matchings0[1] == 7);
+    REQUIRE(matchings0[2] == 7);
+    REQUIRE(matchings0[3] == 7);
 
     REQUIRE(errors0.size() == 4);
     REQUIRE(errors0[0] == 0);
@@ -115,37 +115,19 @@ TEST_CASE("Local ShiftAnd_Test_Reverse", "[localShiftAnd]") {
 
 TEST_CASE("saQuerySeedSetRefLocal_Test", "[saQuerySeedSetRefLocal]") {
     std::array<uint8_t, 16> lmap = Setup();
-    // set up sequence container
-    std::string seq       = "ATGTTGCCTAATTTCACTATTCAGGGTTATACGCCTGGAATATTCTAGGATTCCTAGTCAATTTAT";
-    // sequence with reduced alphabet
-    std::string redSeq    = "ATGTTGTTTAATTTTATTATTTAGGGTTATATGTTTGGAATATTTTAGGATTTTTAGTTAATTTAT";
-    // reverse sequence
-    std::string revSeq    = "ATAAATTGACTAGGAATCCTAGAATATTCCAGGCGTATAACCCTGAATAGTGAAATTAGGCAACAT";
-    std::string redRevSeq = "ATAAATTGATTAGGAATTTTAGAATATTTTAGGTGTATAATTTTGAATAGTGAAATTAGGTAATAT";
-    std::vector<char> seqV (seq.begin(), seq.end());
-    std::vector<std::vector<char> > genSeq;
-    genSeq.push_back(seqV);
 
-    // set up CpG container
-    std::vector<struct CpG> cpgTab;
-    std::vector<struct CpG> cpgStart;
-    cpgStart.push_back({0, 3});
-
-
-    std::unordered_map<uint8_t, std::string> chrMap;
-    std::cout << "Test1" << std::endl;
-    RefGenome ref (std::move(cpgTab), std::move(cpgStart), genSeq);
-    //RefGenome ref (genSeq);
-    std::cout << "Test2" << std::endl;
-    ReadQueue rq ("test.fa", ref, false, false);
+    RefGenome ref("/home/dvk/FAME/catch_tests/RefGenomeTests/indexSmall");
+    ReadQueue rq ("test.fastq", ref, false, false);
     rq.localAlign = true;
 
-    std::string read = "ATGTTGCCTAATTTCACTATTTATTCTAGGATTCCTAGTCAATTTAT";
+    std::string read = "CCACCTGATAATAAATATGTGTCAGAGAGGACTCGATCCGTGTGACCTTGGGTTACAGGGGTACTGGACCGTGAAAAGCCTTTGACAAAATCCTTTTGCC"; // 6th row + 9th row
     ShiftAnd<MyConst::MISCOUNT + MyConst::ADDMIS> sa(read, lmap);
-    MATCH::match match;
-    uint8_t length;
-    uint16_t qThreshold;
-    rq.saQuerySeedSetRefLocal(sa, match, length, qThreshold, 10);
+    MATCH::match match = 0;
+    uint8_t length = 0;
+    uint16_t qThreshold = 5;
+    uint8_t minlength = 30;
+    rq.getSeedRefs(read, read.size(), qThreshold);
+    rq.saQuerySeedSetRefLocal(sa, match, length, qThreshold, minlength);
     std::cout << length << std::endl;
 }
 

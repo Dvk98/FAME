@@ -224,8 +224,10 @@ inline void ShiftAnd<E>::queryLocal(std::vector<uint64_t>& matches, std::vector<
         if(bestMatchLength < highestIdxs[i] - i - 1) {
             bestMatchLength = highestIdxs[i] - i - 1;
             errNum = i;
+            numCompLets = bestMatchLength;
         }
     }
+
 
     if(bestMatchLength >= minLength) {
         if(fwd) {
@@ -235,6 +237,8 @@ inline void ShiftAnd<E>::queryLocal(std::vector<uint64_t>& matches, std::vector<
             length.push_back(bestMatchLength);
         }
         else {
+            //std::cout << "it-end: " << it - end << std::endl;
+            //std::cout << "bestmatchlength: " << bestMatchLength << std::endl;
             matches.push_back(it - end + bestMatchLength - 2);
             errors.push_back(errNum);
             length.push_back(bestMatchLength);
@@ -247,7 +251,6 @@ inline void ShiftAnd<E>::querySeqLocal(std::vector<char>::iterator start, std::v
 {
 
     reset();
-
     uint8_t prevErrs = MyConst::MISCOUNT + 1;
     size_t numCompLets = 0;
     for (auto it = start; it < end; ++it)
@@ -346,21 +349,26 @@ inline void ShiftAnd<E>::queryRevSeqLocal(std::vector<char>::iterator start, std
 
     uint8_t prevErrs = MyConst::MISCOUNT + 1;
     size_t numCompLets = 0;
-    for (auto it = start; it < end; ++it)
+    for (auto it = start; it != end; --it)
     {
+
         switch (*it)
         {
             case 'A':
-				queryLetter('T');
+                //std::cout << 'T' << std::endl;
+                queryLetter('T');
                 break;
             case 'C':
-				queryLetter('G');
+                //std::cout << 'G' << std::endl;
+                queryLetter('G');
                 break;
             case 'G':
-				queryLetter('C');
+                //std::cout << 'C' << std::endl;
+                queryLetter('C');
                 break;
             case 'T':
-				queryLetter('A');
+                //std::cout << 'A' << std::endl;
+                queryLetter('A');
                 break;
             // we do not consider Ns for matches - restart whole automaton for next letter
             case 'N':
